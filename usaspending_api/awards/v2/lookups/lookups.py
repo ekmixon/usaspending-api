@@ -75,13 +75,17 @@ grant_subaward_mapping = {
     "prime_award_recipient_id": "_prime_award_recipient_id",
 }
 
-award_assistance_mapping = {
-    **grant_award_mapping,
-    **loan_award_mapping,
-    **direct_payment_award_mapping,
-    **other_award_mapping,
-}
-non_loan_assistance_award_mapping = {**grant_award_mapping, **direct_payment_award_mapping, **other_award_mapping}
+award_assistance_mapping = (
+    grant_award_mapping
+    | loan_award_mapping
+    | direct_payment_award_mapping
+    | other_award_mapping
+)
+
+non_loan_assistance_award_mapping = (
+    grant_award_mapping | direct_payment_award_mapping | other_award_mapping
+)
+
 
 # TODO: include IDV mappings in the award_type_mapping and update award_filter.py
 award_type_mapping = {
@@ -129,14 +133,18 @@ grant_type_mapping = {"02": "Block Grant", "03": "Formula Grant", "04": "Project
 direct_payment_type_mapping = {"06": "Direct Payment for Specified Use", "10": "Direct Payment with Unrestricted Use"}
 loan_type_mapping = {"07": "Direct Loan", "08": "Guaranteed/Insured Loan"}
 other_type_mapping = {"09": "Insurance", "11": "Other Financial Assistance"}
-assistance_type_mapping = {
-    **grant_type_mapping,
-    **direct_payment_type_mapping,
-    **loan_type_mapping,
-    **other_type_mapping,
-}
-non_loan_assistance_type_mapping = {**grant_type_mapping, **direct_payment_type_mapping, **other_type_mapping}
-procurement_type_mapping = {**contract_type_mapping, **idv_type_mapping}
+assistance_type_mapping = (
+    grant_type_mapping
+    | direct_payment_type_mapping
+    | loan_type_mapping
+    | other_type_mapping
+)
+
+non_loan_assistance_type_mapping = (
+    grant_type_mapping | direct_payment_type_mapping | other_type_mapping
+)
+
+procurement_type_mapping = contract_type_mapping | idv_type_mapping
 all_award_types_mappings = {
     "contracts": list(contract_type_mapping),
     "direct_payments": list(direct_payment_type_mapping),

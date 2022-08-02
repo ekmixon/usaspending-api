@@ -35,10 +35,9 @@ class SubawardCountRetrieveViewSet(APIView):
         try:
             award = Award.objects.get(**award_filter)
         except Award.DoesNotExist:
-            logger.info("No Award found with: '{}'".format(award_id))
-            raise NotFound("No Award found with: '{}'".format(award_id))
-        response_content = {"subawards": award.subaward_count}
-        return response_content
+            logger.info(f"No Award found with: '{award_id}'")
+            raise NotFound(f"No Award found with: '{award_id}'")
+        return {"subawards": award.subaward_count}
 
     @cache_response()
     def get(self, request: Request, requested_award: str) -> Response:

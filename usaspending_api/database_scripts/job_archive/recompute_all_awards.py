@@ -75,7 +75,10 @@ EXIT_SIGNALS = [signal.SIGHUP, signal.SIGABRT, signal.SIGINT, signal.SIGQUIT, si
 def _handle_exit_signal(signum, frame):
     """ Attempt to gracefully handle the exiting of the job as a result of receiving an exit signal."""
     signal_or_human = BSD_SIGNALS.get(signum, signum)
-    logging.warning("Received signal {}. Attempting to gracefully exit".format(signal_or_human))
+    logging.warning(
+        f"Received signal {signal_or_human}. Attempting to gracefully exit"
+    )
+
     teardown(successful_run=False)
     raise SystemExit(3)
 
@@ -109,13 +112,13 @@ class Timer:
 
     def __enter__(self):
         self.start = time.perf_counter()
-        self.print_func("Running   {} ...".format(self.msg))
+        self.print_func(f"Running   {self.msg} ...")
         return self
 
     def __exit__(self, *args, **kwargs):
         self.end = time.perf_counter()
         self.elapsed = self.end - self.start
-        self.print_func("Completed {} in {}".format(self.msg, self.pretty_print(self.elapsed)))
+        self.print_func(f"Completed {self.msg} in {self.pretty_print(self.elapsed)}")
 
     @staticmethod
     def pretty_print(elapsed):
@@ -132,7 +135,7 @@ async def async_run_create(sql):
         await conn.close()
     except Exception:
         logging.exception("=== ERROR ===")
-        logging.error("{}\n=============".format(sql))
+        logging.error(f"{sql}\n=============")
         raise SystemExit(1)
 
     if DEBUG:
@@ -144,12 +147,9 @@ async def async_run_create(sql):
 
 def run_update_query(fabs_awards, fpds_awards):
     loop = asyncio.new_event_loop()
-    statements = []
-
     predicate = f"WHERE tn.award_id IN ({','.join(fabs_awards + fpds_awards)})"
     all_sql = general_award_update_sql_string.format(predicate=predicate)
-    statements.append(asyncio.ensure_future(async_run_create(all_sql), loop=loop))
-
+    statements = [asyncio.ensure_future(async_run_create(all_sql), loop=loop)]
     if fabs_awards:
         predicate = f"WHERE tn.award_id IN ({','.join(fabs_awards)})"
         fabs_sql = fabs_award_update_sql_string.format(predicate=predicate)
@@ -162,7 +162,7 @@ def run_update_query(fabs_awards, fpds_awards):
     all_statements = asyncio.gather(*statements)
     loop.run_until_complete(all_statements)
     loop.close()
-    return sum([stmt.result() for stmt in statements])
+    return sum(stmt.result() for stmt in statements)
 
 
 def main():
@@ -180,35 +180,34 @@ def main():
                 min_id, max_id = results[0]
 
         if MAX_ID is not None:
-            logging.info("Using provided MAX ID {}".format(MAX_ID))
+            logging.info(f"Using provided MAX ID {MAX_ID}")
             max_id = MAX_ID
         if MIN_ID is not None:
-            logging.info("Using provided MIN ID {}".format(MIN_ID))
+            logging.info(f"Using provided MIN ID {MIN_ID}")
             min_id = MIN_ID
 
         if min_id >= max_id:
-            raise RuntimeError("MAX ID ({}) must be greater than MIN ID ({})".format(MAX_ID, MIN_ID))
+            raise RuntimeError(f"MAX ID ({MAX_ID}) must be greater than MIN ID ({MIN_ID})")
 
         logging.info("Min ID: {:,}".format(min_id))
         logging.info("Max ID: {:,}".format(max_id))
         logging.info("Total in range: {:,}".format(max_id - min_id + 1))
-        logging.info("Closing time: {}".format(CLOSING_TIME))
+        logging.info(f"Closing time: {CLOSING_TIME}")
 
         batch_min = min_id
         iteration = 1
         while batch_min <= max_id:
             batch_max = min(batch_min + CHUNK_SIZE - 1, max_id)
-            if CLOSING_TIME:
-                if ITERATION_ESTIMATED_SECONDS:
-                    curr_time = datetime.now(timezone.utc)
-                    next_run_estimated_end_datetime = curr_time + timedelta(seconds=ITERATION_ESTIMATED_SECONDS)
-                    dt_str = next_run_estimated_end_datetime.isoformat()
-                    logging.info("=> Expected iteration duration: {} ".format(ITERATION_ESTIMATED_SECONDS))
-                    logging.info("=> Estimated loop end datetime of: {}".format(dt_str))
-                    if next_run_estimated_end_datetime >= CLOSING_TIME:
-                        logging.info("===== Suspending job due to --closing-time flag")
-                        logging.info("===== Start next job at ID {} =====".format(batch_min))
-                        return
+            if CLOSING_TIME and ITERATION_ESTIMATED_SECONDS:
+                curr_time = datetime.now(timezone.utc)
+                next_run_estimated_end_datetime = curr_time + timedelta(seconds=ITERATION_ESTIMATED_SECONDS)
+                dt_str = next_run_estimated_end_datetime.isoformat()
+                logging.info(f"=> Expected iteration duration: {ITERATION_ESTIMATED_SECONDS} ")
+                logging.info(f"=> Estimated loop end datetime of: {dt_str}")
+                if next_run_estimated_end_datetime >= CLOSING_TIME:
+                    logging.info("===== Suspending job due to --closing-time flag")
+                    logging.info(f"===== Start next job at ID {batch_min} =====")
+                    return
 
             with Timer("[Awards {:,} - {:,}]".format(batch_min, batch_max), pipe_output=logging.info) as t:
                 with connection.cursor() as cursor:
@@ -245,7 +244,7 @@ def rolling_average(current_avg: float, new_value: float, total_count: int) -> f
 
     Needs the current average, a new value to include, and the total samples
     """
-    new_average = float(current_avg)
+    new_average = current_avg
     new_average -= new_average / total_count
     new_average += new_value / total_count
     return new_average

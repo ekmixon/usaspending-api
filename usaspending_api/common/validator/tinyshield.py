@@ -190,22 +190,31 @@ class TinyShield:
         # Confirm required fields (both baseline and type-specific) are in the model
         base_minimum_fields = ("name", "key", "type")
 
-        if not all(field in model.keys() for field in base_minimum_fields):
-            raise Exception("Model {} missing a base required field [{}]".format(model, base_minimum_fields))
+        if any(field not in model.keys() for field in base_minimum_fields):
+            raise Exception(
+                f"Model {model} missing a base required field [{base_minimum_fields}]"
+            )
+
 
         if model["type"] not in VALIDATORS:
-            raise Exception("Invalid model type [{}] provided in description".format(model["type"]))
+            raise Exception(
+                f'Invalid model type [{model["type"]}] provided in description'
+            )
+
 
         type_description = VALIDATORS[model["type"]]
         required_fields = type_description["required_fields"]
 
         for required_field in required_fields:
             if required_field not in model:
-                raise Exception("Model {} missing a type required field: {}".format(model, required_field))
+                raise Exception(
+                    f"Model {model} missing a type required field: {required_field}"
+                )
+
 
         if model.get("text_type") and model["text_type"] not in SUPPORTED_TEXT_TYPES:
             msg = "Invalid model '{key}': '{text_type}' is not a valid text_type".format(**model)
-            raise Exception(msg + " Possible types: {}".format(SUPPORTED_TEXT_TYPES))
+            raise Exception(msg + f" Possible types: {SUPPORTED_TEXT_TYPES}")
 
         for default_key, default_value in type_description["defaults"].items():
             model[default_key] = model.get(default_key, default_value)
@@ -247,7 +256,10 @@ class TinyShield:
                 item["value"] = value
             elif item["optional"] is False:
                 # If the value is required, raise exception since key wasn't found
-                raise UnprocessableEntityException("Missing value: '{}' is a required field".format(item["key"]))
+                raise UnprocessableEntityException(
+                    f"""Missing value: '{item["key"]}' is a required field"""
+                )
+
             elif "default" in item:
                 # If value wasn't found, and this is optional, use the default
                 item["value"] = item["default"]
@@ -270,8 +282,7 @@ class TinyShield:
             if rule["type"] in VALIDATORS:
                 _return = VALIDATORS[rule["type"]]["func"](rule)
             else:
-                raise Exception("Invalid Type {} in rule".format(rule["type"]))
-        # Array is a "special" type since it is a list of other types which need to be validated
+                raise Exception(f'Invalid Type {rule["type"]} in rule')
         elif rule["type"] == "array":
             rule["array_min"] = rule.get("array_min", 1)
             rule["array_max"] = rule.get("array_max", MAX_ITEMS)
@@ -286,7 +297,6 @@ class TinyShield:
                 child_rule["value"] = v
                 array_result.append(self.apply_rule(child_rule))
             _return = array_result
-        # Object is a "special" type since it is comprised of other types which need to be validated
         elif rule["type"] == "object":
             rule["object_min"] = rule.get("object_min", 1)
             rule["object_max"] = rule.get("object_max", MAX_ITEMS)
@@ -297,7 +307,7 @@ class TinyShield:
                     value = provided_object[k]
                 except KeyError:
                     if "optional" in v and v["optional"] is False:
-                        raise UnprocessableEntityException("Required object fields: {}".format(k))
+                        raise UnprocessableEntityException(f"Required object fields: {k}")
                     elif "default" in v:
                         value = v["default"]
                     else:
@@ -309,7 +319,6 @@ class TinyShield:
                 child_rule = self.promote_subrules(child_rule, v)
                 object_result[k] = self.apply_rule(child_rule)
             _return = object_result
-        # Any is a "special" type since it is is really a collection of other rules.
         elif rule["type"] == "any":
             for child_rule in rule["models"]:
                 child_rule["value"] = rule["value"]
@@ -345,7 +354,7 @@ class TinyShield:
                 child_rule["max"] = child_rule.get("max") or source.get("array_max")
 
         except KeyError as e:
-            raise Exception("Invalid Rule: {} type requires {}".format(param_type, e))
+            raise Exception(f"Invalid Rule: {param_type} type requires {e}")
         return child_rule
 
     def recurse_append(self, struct, mydict, data):
@@ -354,8 +363,6 @@ class TinyShield:
             return
         else:
             level = struct.pop(0)
-            if level in mydict:
-                self.recurse_append(struct, mydict[level], data)
-            else:
+            if level not in mydict:
                 mydict[level] = {}
-                self.recurse_append(struct, mydict[level], data)
+            self.recurse_append(struct, mydict[level], data)

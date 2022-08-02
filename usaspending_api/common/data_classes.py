@@ -14,9 +14,7 @@ class Pagination:
 
     @property
     def _sort_order_field_prefix(self):
-        if self.sort_order == "desc":
-            return "-"
-        return ""
+        return "-" if self.sort_order == "desc" else ""
 
     @property
     def order_by(self):

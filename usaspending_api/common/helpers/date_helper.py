@@ -94,7 +94,7 @@ def fy(raw_date):
         if raw_date.month > 9:
             result += 1
     except AttributeError:
-        raise TypeError("{} needs year and month attributes".format(raw_date))
+        raise TypeError(f"{raw_date} needs year and month attributes")
 
     return result
 

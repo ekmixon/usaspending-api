@@ -37,7 +37,7 @@ class Command(BaseCommand):
             db_query = ALL_FPDS_QUERY.format("detached_award_procurement_id")
 
         if date:
-            db_cursor.execute(db_query + " WHERE updated_at >= %s", [date])
+            db_cursor.execute(f"{db_query} WHERE updated_at >= %s", [date])
         else:
             db_cursor.execute(db_query)
         return db_cursor
@@ -58,16 +58,16 @@ class Command(BaseCommand):
             logger.info("Fetching records to update")
             total_records = self.get_cursor_for_date_query(connection, date, True).fetchall()[0][0]
             records_processed = 0
-            logger.info("{} total records to update".format(total_records))
+            logger.info(f"{total_records} total records to update")
             cursor = self.get_cursor_for_date_query(connection, date)
             while True:
                 id_list = cursor.fetchmany(chunk_size)
                 if len(id_list) == 0:
                     break
-                logger.info("Loading batch (size: {}) from date query...".format(len(id_list)))
+                logger.info(f"Loading batch (size: {len(id_list)}) from date query...")
                 self.modified_award_ids.extend(load_fpds_transactions([row[0] for row in id_list]))
                 records_processed = records_processed + len(id_list)
-                logger.info("{} out of {} processed".format(records_processed, total_records))
+                logger.info(f"{records_processed} out of {total_records} processed")
 
     @staticmethod
     def gen_read_file_for_ids(file: IO[AnyStr], chunk_size: int = CHUNK_SIZE) -> List[str]:
@@ -158,11 +158,11 @@ class Command(BaseCommand):
             self.load_fpds_from_file(options["file"])
 
         elif options["since_last_load"]:
-            last_load = get_last_load_date("fpds")
-            if not last_load:
-                raise ValueError("No last load date for FPDS stored in the database")
-            self.load_fpds_incrementally(last_load)
+            if last_load := get_last_load_date("fpds"):
+                self.load_fpds_incrementally(last_load)
 
+            else:
+                raise ValueError("No last load date for FPDS stored in the database")
         self.update_award_records(awards=self.modified_award_ids, skip_cd_linkage=False)
 
         logger.info(f"Script took {datetime.now(timezone.utc) - update_time}")
@@ -176,4 +176,4 @@ class Command(BaseCommand):
             # we wait until after the load finishes to update the load date because if this crashes we'll need to load again
             update_last_load_date("fpds", update_time)
 
-        logger.info(f"Successfully Completed")
+        logger.info("Successfully Completed")

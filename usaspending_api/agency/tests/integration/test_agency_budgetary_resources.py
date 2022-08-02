@@ -166,7 +166,7 @@ def test_budgetary_resources(client, data_fixture):
         },
     ]
     for year in range(2017, current_fiscal_year() + 1):
-        if year != FY and year != PRIOR_FY:
+        if year not in [FY, PRIOR_FY]:
             expected_results.append(
                 {
                     "fiscal_year": year,

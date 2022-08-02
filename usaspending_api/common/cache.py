@@ -33,9 +33,7 @@ class GetPostQueryParamsKeyBit(bits.QueryParamsKeyBit):
                 if param in request.data:
                     params[param] = request.data[param]
         else:
-            params = dict(request.query_params)
-            params.update(dict(request.data))
-
+            params = dict(request.query_params) | request.data
         if "auditTrail" in params:
             del params["auditTrail"]
         return {"request": json.dumps(order_nested_object(params))}
@@ -53,8 +51,7 @@ class USAspendingKeyConstructor(DefaultKeyConstructor):
     def prepare_key(self, key_dict):
         # Order the key_dict using the order_nested_object function to make sure cache keys are always exactly the same
         ordered_key_dict = json.dumps(order_nested_object(key_dict))
-        key_hex = hashlib.md5(ordered_key_dict.encode("utf-8")).hexdigest()
-        return key_hex
+        return hashlib.md5(ordered_key_dict.encode("utf-8")).hexdigest()
 
 
 usaspending_key_func = USAspendingKeyConstructor()

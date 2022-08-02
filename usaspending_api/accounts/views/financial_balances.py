@@ -47,7 +47,7 @@ class AgenciesFinancialBalancesViewSet(CachedDetailViewSet):
         active_fiscal_year = submission.reporting_fiscal_year
         active_fiscal_quarter = submission.fiscal_quarter
 
-        queryset = (
+        return (
             AppropriationAccountBalances.objects.filter(
                 submission__reporting_fiscal_year=active_fiscal_year,
                 submission__reporting_fiscal_quarter=active_fiscal_quarter,
@@ -57,10 +57,10 @@ class AgenciesFinancialBalancesViewSet(CachedDetailViewSet):
             .annotate(fiscal_year=F("submission__reporting_fiscal_year"))
             .values("fiscal_year")
             .annotate(
-                budget_authority_amount=Sum("total_budgetary_resources_amount_cpe"),
+                budget_authority_amount=Sum(
+                    "total_budgetary_resources_amount_cpe"
+                ),
                 obligated_amount=Sum("obligations_incurred_total_by_tas_cpe"),
                 outlay_amount=Sum("gross_outlay_amount_by_tas_cpe"),
             )
         )
-
-        return queryset

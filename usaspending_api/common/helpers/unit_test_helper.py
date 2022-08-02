@@ -16,7 +16,7 @@ def mappings_test(download_type, sublevel):
             ]
             annotations = annotations_function({})
         else:
-            query_values = [value for value in lookup_mapping.query_paths[table_name][sublevel].values()]
+            query_values = list(lookup_mapping.query_paths[table_name][sublevel].values())
             annotations = {}
         table.objects.values(*query_values, **annotations)
     except FieldError:

@@ -152,7 +152,7 @@ class Command(BaseCommand):
                         asyncio.ensure_future(async_run_creates(sql, wrapper=Timer(chunked_matview)), loop=loop)
                     )
 
-        if len(tasks) > 0:
+        if tasks:
             loop.run_until_complete(asyncio.gather(*tasks))
 
         loop.close()

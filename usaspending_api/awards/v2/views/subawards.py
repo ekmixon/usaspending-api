@@ -50,8 +50,7 @@ class SubawardsViewSet(APIView):
                 model["enum_values"] = list(self.subaward_lookup.keys())
                 model["default"] = "subaward_number"
 
-        validated_request_data = TinyShield(models).block(request_dict)
-        return validated_request_data
+        return TinyShield(models).block(request_dict)
 
     def _business_logic(self, request_data):
         lower_limit = (request_data["page"] - 1) * request_data["limit"]

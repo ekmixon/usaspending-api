@@ -75,7 +75,7 @@ def _build_order_by_column(sort_column, sort_order=None, sort_null=None):
     if sort_null is not None:
         if sort_null not in ("first", "last"):
             raise ValueError('sort_null must be either "first" or "last"')
-        bits.append(SQL("nulls %s" % sort_null))
+        bits.append(SQL(f"nulls {sort_null}"))
 
     return SQL(" ").join(bits)
 
@@ -125,17 +125,20 @@ def build_composable_order_by(sort_columns, sort_orders=None, sort_nulls=None):
 
     if len(sort_orders) != column_count:
         raise ValueError(
-            "Number of sort_orders (%s) does not match number of sort_columns (%s)" % (len(sort_orders), column_count)
+            f"Number of sort_orders ({len(sort_orders)}) does not match number of sort_columns ({column_count})"
         )
+
 
     if len(sort_nulls) != column_count:
         raise ValueError(
-            "Number of sort_nulls (%s) does not match number of sort_columns (%s)" % (len(sort_nulls), column_count)
+            f"Number of sort_nulls ({len(sort_nulls)}) does not match number of sort_columns ({column_count})"
         )
 
-    order_bys = []
-    for column, order, null in zip(sort_columns, sort_orders, sort_nulls):
-        order_bys.append(_build_order_by_column(column, order, null))
+
+    order_bys = [
+        _build_order_by_column(column, order, null)
+        for column, order, null in zip(sort_columns, sort_orders, sort_nulls)
+    ]
 
     return SQL("order by ") + SQL(", ").join(order_bys)
 
@@ -156,12 +159,11 @@ def convert_composable_query_to_string(sql, model=Award, cursor=None):
 
     """
     if isinstance(sql, Composable):
-        if cursor is None:
-            connection = get_connection(model)
-            with connection.cursor() as _cursor:
-                return sql.as_string(_cursor.connection)
-        else:
+        if cursor is not None:
             return sql.as_string(cursor.connection)
+        connection = get_connection(model)
+        with connection.cursor() as _cursor:
+            return sql.as_string(_cursor.connection)
     return sql
 
 
@@ -304,11 +306,11 @@ def get_connection(model=Award, read_only=True):
 
     Returns an appropriate Django database connection.
     """
-    if read_only:
-        _connection = connections[router.db_for_read(model)]
-    else:
-        _connection = connections[router.db_for_write(model)]
-    return _connection
+    return (
+        connections[router.db_for_read(model)]
+        if read_only
+        else connections[router.db_for_write(model)]
+    )
 
 
 def close_all_django_db_conns() -> None:

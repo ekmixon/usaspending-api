@@ -32,7 +32,7 @@ def get_unlinked_count(file_name):
 
 
 def update_c_to_d_linkages(type, count=True, submission_id=None):
-    logger.info("Starting File C to D linkage updates for %s records" % type)
+    logger.info(f"Starting File C to D linkage updates for {type} records")
 
     if type.lower() == "contract":
         file_names = ["update_file_c_linkages_piid.sql"]
@@ -49,7 +49,10 @@ def update_c_to_d_linkages(type, count=True, submission_id=None):
 
     if count:
         starting_unlinked_count = get_unlinked_count(file_name=unlinked_count_file_name)
-        logger.info("Current count of unlinked %s records: %s" % (type, str(starting_unlinked_count)))
+        logger.info(
+            f"Current count of unlinked {type} records: {str(starting_unlinked_count)}"
+        )
+
 
     total_start = datetime.now()
     for file_name in file_names:
@@ -65,6 +68,11 @@ def update_c_to_d_linkages(type, count=True, submission_id=None):
 
     if count:
         ending_unlinked_count = get_unlinked_count(file_name=unlinked_count_file_name)
-        logger.info("Count of unlinked %s records after updates: %s" % (type, str(ending_unlinked_count)))
+        logger.info(
+            f"Count of unlinked {type} records after updates: {str(ending_unlinked_count)}"
+        )
 
-    logger.info("Finished all queries in %s seconds" % str(datetime.now() - total_start))
+
+    logger.info(
+        f"Finished all queries in {str(datetime.now() - total_start)} seconds"
+    )

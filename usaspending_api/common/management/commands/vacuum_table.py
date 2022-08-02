@@ -42,12 +42,14 @@ class Command(BaseCommand):
         else:
             tables = tables[0]
             for table in tables:
-                logger.info("Running VACUUM ANALYZE on the %s table" % table)
+                logger.info(f"Running VACUUM ANALYZE on the {table} table")
                 with connection.cursor() as cursor:
-                    cursor.execute("VACUUM ANALYZE VERBOSE %s;" % table)
+                    cursor.execute(f"VACUUM ANALYZE VERBOSE {table};")
                 logger.info(
-                    "Finished running VACUUM ANALYZE on the %s table in %s seconds"
-                    % (table, str(datetime.now() - total_start))
+                    f"Finished running VACUUM ANALYZE on the {table} table in {str(datetime.now() - total_start)} seconds"
                 )
 
-        logger.info("Finished VACUUM ANALYZE-ing tables in %s seconds" % str(datetime.now() - total_start))
+
+        logger.info(
+            f"Finished VACUUM ANALYZE-ing tables in {str(datetime.now() - total_start)} seconds"
+        )

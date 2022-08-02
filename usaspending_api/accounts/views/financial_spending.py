@@ -51,9 +51,7 @@ class ObjectClassFinancialSpendingViewSet(CachedDetailViewSet):
         active_fiscal_year = submission.reporting_fiscal_year
         active_fiscal_quarter = submission.fiscal_quarter
 
-        # Special case: major object class name for class 00 should be reported
-        # as Unknown Object Type, overriding actual value in database
-        queryset = (
+        return (
             FinancialAccountsByProgramActivityObjectClass.objects.filter(
                 submission__reporting_fiscal_year=active_fiscal_year,
                 submission__reporting_fiscal_quarter=active_fiscal_quarter,
@@ -62,17 +60,22 @@ class ObjectClassFinancialSpendingViewSet(CachedDetailViewSet):
             )
             .annotate(
                 major_object_class_name=Case(
-                    When(object_class__major_object_class="00", then=Value("Unknown Object Type")),
+                    When(
+                        object_class__major_object_class="00",
+                        then=Value("Unknown Object Type"),
+                    ),
                     default="object_class__major_object_class_name",
                 ),
                 major_object_class_code=F("object_class__major_object_class"),
             )
             .values("major_object_class_name", "major_object_class_code")
-            .annotate(obligated_amount=Sum("obligations_incurred_by_program_object_class_cpe"))
+            .annotate(
+                obligated_amount=Sum(
+                    "obligations_incurred_by_program_object_class_cpe"
+                )
+            )
             .order_by("major_object_class_code")
         )
-
-        return queryset
 
 
 class MinorObjectClassFinancialSpendingViewSet(CachedDetailViewSet):

@@ -212,7 +212,7 @@ def build_spending_update_query(query_base, update_data):
 
 
 def print_no_rows_to_update(transaction_type):
-    logging.info("[{}] No rows to update".format(transaction_type))
+    logging.info(f"[{transaction_type}] No rows to update")
 
 
 def run_broker_select_query(transaction_sql, id_tuple):
@@ -230,7 +230,10 @@ def run_spending_update_query(transaction_sql, transaction_type, broker_data):
         logging.info("[{}] {:,} rows updated in {}".format(transaction_type, row_count, t.elapsed_as_string))
         if row_count > 0:
             now = datetime.now(timezone.utc)
-            insert_values = ",".join(["({},'{}')".format(id[0], now) for id in update_cursor.fetchall()])
+            insert_values = ",".join(
+                [f"({id[0]},'{now}')" for id in update_cursor.fetchall()]
+            )
+
             update_cursor.execute(ADD_TRANSACTIONS_TO_DELTA.format(insert_values))
             logging.info("[{}] {:,} rows added to transaction_delta".format(transaction_type, update_cursor.rowcount))
 
@@ -246,8 +249,8 @@ if __name__ == "__main__":
 
     with Timer() as overall_timer:
         with psycopg2.connect(dsn=SPENDING_CONNECTION_STRING) as spending_connection, psycopg2.connect(
-            dsn=BROKER_CONNECTION_STRING
-        ) as broker_connection:
+                    dsn=BROKER_CONNECTION_STRING
+                ) as broker_connection:
             spending_connection.autocommit = True
 
             logging.info("Running FABS backfill from Broker to USAspending")
@@ -261,12 +264,16 @@ if __name__ == "__main__":
 
             with Timer() as chunk_timer:
                 for i in range(0, fabs_total, CHUNK_SIZE):
-                    max_index = i + CHUNK_SIZE if i + CHUNK_SIZE < fabs_total else fabs_total
+                    max_index = min(i + CHUNK_SIZE, fabs_total)
                     fabs_ids_batch = tuple(fabs_ids[i:max_index])
 
-                    logging.info("Fetching {}-{} out of {} records from broker".format(i, max_index, fabs_total))
-                    broker_fabs_data = run_broker_select_query(BROKER_FABS_SELECT_SQL, fabs_ids_batch)
-                    if broker_fabs_data:
+                    logging.info(
+                        f"Fetching {i}-{max_index} out of {fabs_total} records from broker"
+                    )
+
+                    if broker_fabs_data := run_broker_select_query(
+                        BROKER_FABS_SELECT_SQL, fabs_ids_batch
+                    ):
                         updated_row_count = run_spending_update_query(
                             SPENDING_FABS_UPDATE_SQL, "FABS", broker_fabs_data
                         )
@@ -291,12 +298,16 @@ if __name__ == "__main__":
 
             with Timer() as chunk_timer:
                 for i in range(0, fpds_total, CHUNK_SIZE):
-                    max_index = i + CHUNK_SIZE if i + CHUNK_SIZE < fpds_total else fpds_total
+                    max_index = min(i + CHUNK_SIZE, fpds_total)
                     fpds_ids_batch = tuple(fpds_ids[i:max_index])
 
-                    logging.info("Fetching {}-{} out of {} records from broker".format(i, max_index, fpds_total))
-                    broker_fpds_data = run_broker_select_query(BROKER_FPDS_SELECT_SQL, fpds_ids_batch)
-                    if broker_fpds_data:
+                    logging.info(
+                        f"Fetching {i}-{max_index} out of {fpds_total} records from broker"
+                    )
+
+                    if broker_fpds_data := run_broker_select_query(
+                        BROKER_FPDS_SELECT_SQL, fpds_ids_batch
+                    ):
                         updated_row_count = run_spending_update_query(
                             SPENDING_FPDS_UPDATE_SQL, "FPDS", broker_fpds_data
                         )

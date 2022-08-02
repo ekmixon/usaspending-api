@@ -65,13 +65,11 @@ code_to_state_dict = {v: k for k, v in state_to_code_dict.items()}
 
 
 def state_code_from_name(name):
-    if name:  # can't run lower() on None
-        return state_to_code_dict.get(name.lower(), None)
-    return None
+    return state_to_code_dict.get(name.lower(), None) if name else None
 
 
 def state_name_from_code(code):
-    retval = code_to_state_dict.get(code, None)
-    if retval:
+    if retval := code_to_state_dict.get(code, None):
         return retval.title()
-    return retval
+    else:
+        return retval

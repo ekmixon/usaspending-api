@@ -85,7 +85,7 @@ class _FakeFileBackedSQSQueue:
 
     @classmethod
     def _enqueue(cls, msg: FakeSQSMessage):
-        with FileLock(cls._QUEUE_DATA_FILE + ".lock"):
+        with FileLock(f"{cls._QUEUE_DATA_FILE}.lock"):
             with open(cls._QUEUE_DATA_FILE, "r+b") as queue_data_file:
                 messages = pickle.load(queue_data_file)
             messages.appendleft(msg)
@@ -94,7 +94,7 @@ class _FakeFileBackedSQSQueue:
 
     @classmethod
     def _remove(cls, msg: FakeSQSMessage):
-        with FileLock(cls._QUEUE_DATA_FILE + ".lock"):
+        with FileLock(f"{cls._QUEUE_DATA_FILE}.lock"):
             with open(cls._QUEUE_DATA_FILE, "r+b") as queue_data_file:
                 messages = pickle.load(queue_data_file)
             messages.remove(msg)
@@ -104,8 +104,7 @@ class _FakeFileBackedSQSQueue:
     @classmethod
     def _messages(cls) -> deque:
         with open(cls._QUEUE_DATA_FILE, "rb") as queue_data_file:
-            messages = pickle.load(queue_data_file)
-            return messages
+            return pickle.load(queue_data_file)
 
     @classmethod
     def send_message(cls, MessageBody: str, MessageAttributes: dict = None):  # noqa
@@ -171,8 +170,9 @@ class _FakeStatelessLoggingSQSDeadLetterQueue:
     @staticmethod
     def send_message(MessageBody, MessageAttributes=None):  # noqa
         _FakeStatelessLoggingSQSDeadLetterQueue.logger.debug(
-            "executing SQSMockDeadLetterQueue.send_message({}, {})".format(MessageBody, MessageAttributes)
+            f"executing SQSMockDeadLetterQueue.send_message({MessageBody}, {MessageAttributes})"
         )
+
         return {"ResponseMetadata": {"HTTPStatusCode": 200}}
 
     @staticmethod
@@ -184,11 +184,9 @@ class _FakeStatelessLoggingSQSDeadLetterQueue:
         MaxNumberOfMessages=1,  # noqa
     ):
         _FakeStatelessLoggingSQSDeadLetterQueue.logger.debug(
-            "executing SQSMockDeadLetterQueue.receive_messages("
-            "{}, {}, {}, {}, {})".format(
-                WaitTimeSeconds, AttributeNames, MessageAttributeNames, VisibilityTimeout, MaxNumberOfMessages
-            )
+            f"executing SQSMockDeadLetterQueue.receive_messages({WaitTimeSeconds}, {AttributeNames}, {MessageAttributeNames}, {VisibilityTimeout}, {MaxNumberOfMessages})"
         )
+
         return []
 
 
@@ -240,11 +238,12 @@ def get_sqs_queue(region_name=settings.USASPENDING_AWS_REGION, queue_name=settin
     if settings.IS_LOCAL:
         # Ensure the "singleton" instances of the queue is returned, so that multiple consumers, possibly on
         # different processes or threads, are accessing the same queue data
-        if queue_name == UNITTEST_FAKE_DEAD_LETTER_QUEUE_NAME:
-            return _FakeStatelessLoggingSQSDeadLetterQueue()
-        return _FakeFileBackedSQSQueue.instance()
-    else:
-        # stuff that's in get_queue
-        sqs = boto3.resource("sqs", endpoint_url=f"https://sqs.{region_name}.amazonaws.com", region_name=region_name)
-        queue = sqs.get_queue_by_name(QueueName=queue_name)
-        return queue
+        return (
+            _FakeStatelessLoggingSQSDeadLetterQueue()
+            if queue_name == UNITTEST_FAKE_DEAD_LETTER_QUEUE_NAME
+            else _FakeFileBackedSQSQueue.instance()
+        )
+
+    # stuff that's in get_queue
+    sqs = boto3.resource("sqs", endpoint_url=f"https://sqs.{region_name}.amazonaws.com", region_name=region_name)
+    return sqs.get_queue_by_name(QueueName=queue_name)

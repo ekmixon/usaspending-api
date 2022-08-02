@@ -104,6 +104,8 @@ def _annotate_recipient_id(field_name, queryset, annotation_sql):
     parent_recipient_unique_id which, currently, all of our advanced search materialized views do.
     """
 
+
+
     class RecipientId(Expression):
         """
         Used to graft a subquery into a queryset that can build recipient ids.
@@ -130,12 +132,16 @@ def _annotate_recipient_id(field_name, queryset, annotation_sql):
             return (
                 convert_composable_query_to_string(
                     SQL(annotation_sql).format(
-                        outer_table=Identifier(compiler.query.model._meta.db_table),
-                        special_cases=Literal(tuple(sc for sc in SPECIAL_CASES)),
+                        outer_table=Identifier(
+                            compiler.query.model._meta.db_table
+                        ),
+                        special_cases=Literal(tuple(SPECIAL_CASES)),
                     )
                 ),
                 [],
             )
+
+
 
     return queryset.annotate(**{field_name: RecipientId()})
 

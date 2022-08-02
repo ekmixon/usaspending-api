@@ -14,8 +14,8 @@ from usaspending_api.common.helpers.sql_helpers import get_connection
 
 
 SAMPLE_DATA = json.loads(Path("usaspending_api/awards/tests/data/broker_subawards.json").read_text())
-MIN_ID = min([r["id"] for r in SAMPLE_DATA])
-MAX_ID = max([r["id"] for r in SAMPLE_DATA])
+MIN_ID = min(r["id"] for r in SAMPLE_DATA)
+MAX_ID = max(r["id"] for r in SAMPLE_DATA)
 
 
 def _stage_table_mock(source, destination, staging):
@@ -170,7 +170,7 @@ def test_some_data_correction_conditions(cursor_fixture):
     broker_subaward.save()
 
     broker_subaward = BrokerSubaward.objects.get(id=3613892)
-    assert broker_subaward.sub_recovery_model_q1 is True
+    assert broker_subaward.sub_recovery_model_q1
 
     subaward = Subaward.objects.get(id=3613892)
     subaward.recovery_model_question1 = "maybe"

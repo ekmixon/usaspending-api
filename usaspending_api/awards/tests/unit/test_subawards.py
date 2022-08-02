@@ -50,8 +50,7 @@ def request_with_sort(sort):
     svs = SubawardsViewSet()
     test_payload = {"page": 1, "limit": 4, "sort": sort, "order": "desc"}
     test_params = svs._parse_and_validate_request(test_payload)
-    subawards_logic = svs._business_logic(test_params)
-    return subawards_logic
+    return svs._business_logic(test_params)
 
 
 @pytest.mark.django_db

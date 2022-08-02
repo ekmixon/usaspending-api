@@ -169,27 +169,27 @@ class Command(BaseCommand):
         with connection.cursor() as cursor:
             with Timer("Checking FPDS"):
                 cursor.execute(CHECK_MISSING_AWARDS.format(table="transaction_fpds", field="unique_award_key"))
-                fpds_missing_ids = set([str(row[0]) for row in cursor.fetchall()])
+                fpds_missing_ids = {str(row[0]) for row in cursor.fetchall()}
                 self.metrics["count_missing_fpds_awards"] = len(fpds_missing_ids)
 
             with Timer("Checking FABS"):
                 cursor.execute(CHECK_MISSING_AWARDS.format(table="transaction_fabs", field="unique_award_key"))
-                fabs_missing_ids = set([str(row[0]) for row in cursor.fetchall()])
+                fabs_missing_ids = {str(row[0]) for row in cursor.fetchall()}
                 self.metrics["count_missing_fabs_awards"] = len(fabs_missing_ids)
 
             with Timer("Checking bad FKs in transaction_normalized"):
                 cursor.execute(faulty_transaction_to_awards_fks)
-                faulty_txn_fks = [row for row in cursor.fetchall()]
+                faulty_txn_fks = list(cursor.fetchall())
                 self.metrics["count_faulty_award_fks_in_transaction_normalized"] = len(faulty_txn_fks)
 
             with Timer("Checking bad FKs in awards"):
                 cursor.execute(faulty_awards_to_transactions_fks)
-                faulty_award_fks = [row for row in cursor.fetchall()]
+                faulty_award_fks = list(cursor.fetchall())
                 self.metrics["count_faulty_transaction_fks_in_awards"] = len(faulty_award_fks)
 
             with Timer("Checking missing FKs in Awards"):
                 cursor.execute(blank_award_fks)
-                blank_fks = [row for row in cursor.fetchall()]
+                blank_fks = list(cursor.fetchall())
                 self.metrics["count_blank_fks_in_awards"] = len(blank_fks)
 
         if fpds_missing_ids:

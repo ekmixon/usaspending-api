@@ -10,34 +10,39 @@ from usaspending_api.common.helpers import sql_helpers
 def _get_shared_columns(source_columns: List[str], destination_columns: List[str]) -> List[str]:
     """ Return the list of columns contained in both lists. """
 
-    shared_columns = [c for c in destination_columns if c in source_columns]
-    if not shared_columns:
+    if shared_columns := [
+        c for c in destination_columns if c in source_columns
+    ]:
+        return shared_columns
+    else:
         raise RuntimeError("No shared columns between database objects.")
-    return shared_columns
 
 
 def _get_changeable_columns(source: ETLObjectBase, destination: ETLWritableObjectBase):
     """ Destination columns that are in source that are not overridden and are not keys. """
-    changeable_columns = [
+    if changeable_columns := [
         c
         for c in destination.columns
-        if c in source.columns and c not in destination.update_overrides and c not in destination.key_columns
-    ]
-    if not changeable_columns:
+        if c in source.columns
+        and c not in destination.update_overrides
+        and c not in destination.key_columns
+    ]:
+        return changeable_columns
+    else:
         raise RuntimeError("No changeable columns.")
-    return changeable_columns
 
 
 def _get_settable_columns(source: ETLObjectBase, destination: ETLWritableObjectBase):
     """ Destination columns that are in source or are overridden but are not keys. """
-    settable_columns = [
+    if settable_columns := [
         c
         for c in destination.columns
-        if (c in source.columns or c in destination.update_overrides) and c not in destination.key_columns
-    ]
-    if not settable_columns:
+        if (c in source.columns or c in destination.update_overrides)
+        and c not in destination.key_columns
+    ]:
+        return settable_columns
+    else:
         raise RuntimeError("No settable columns.")
-    return settable_columns
 
 
 def delete_obsolete_rows(source: ETLObjectBase, destination: ETLWritableObjectBase) -> int:

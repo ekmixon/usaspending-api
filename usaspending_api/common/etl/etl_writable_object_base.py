@@ -19,15 +19,15 @@ class ETLWritableObjectBase(ETLObjectBase, metaclass=ABCMeta):
 
     @cached_property
     def data_types(self) -> DataTypes:
-        data_types = self._get_data_types()
-        if not data_types:
+        if data_types := self._get_data_types():
+            return data_types
+        else:
             raise RuntimeError("No columns found.  Do we have permission to see the database object?")
-        return data_types
 
     @cached_property
     def insert_overrides(self) -> ColumnOverrides:
         if self._insert_overrides:
-            if not all(c in self.columns for c in self._insert_overrides):
+            if any(c not in self.columns for c in self._insert_overrides):
                 raise RuntimeError("All columns listed in insert_overrides must exist in database object.")
             key_columns = [k.name for k in self.key_columns]
             if any(c in key_columns for c in self._insert_overrides):
@@ -36,15 +36,15 @@ class ETLWritableObjectBase(ETLObjectBase, metaclass=ABCMeta):
 
     @cached_property
     def key_columns(self) -> KeyColumns:
-        key_columns = self._get_key_columns()
-        if not key_columns:
+        if key_columns := self._get_key_columns():
+            return key_columns
+        else:
             raise RuntimeError("No columns found.  Do we have permission to see the database object?")
-        return key_columns
 
     @cached_property
     def update_overrides(self) -> ColumnOverrides:
         if self._update_overrides:
-            if not all(c in self.columns for c in self._update_overrides):
+            if any(c not in self.columns for c in self._update_overrides):
                 raise RuntimeError("All columns listed in update_overrides must exist in database object.")
             key_columns = [k.name for k in self.key_columns]
             if any(c in key_columns for c in self._update_overrides):
@@ -59,7 +59,7 @@ class ETLWritableObjectBase(ETLObjectBase, metaclass=ABCMeta):
     def _get_key_columns(self) -> KeyColumns:
         """ Returns caller supplied or primary key columns (if caller did not supply keys). """
         if self._key_overrides:
-            if not all(c in self.columns for c in self._key_overrides):
+            if any(c not in self.columns for c in self._key_overrides):
                 raise RuntimeError("All columns listed in key_overrides must exist in database object.")
             keys = self._key_overrides
         else:

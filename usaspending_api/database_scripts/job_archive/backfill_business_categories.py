@@ -206,7 +206,7 @@ async def update_sql_functions(pool):
         sql = Path("usaspending_api/broker/management/sql/create_business_categories_functions.sql").read_text()
         async with pool.acquire() as connection:
             await connection.execute(sql)
-    logging.info("Updated SQL functions in {}".format(t))
+    logging.info(f"Updated SQL functions in {t}")
 
 
 def id_ranges(min_id, max_id):
@@ -219,7 +219,10 @@ async def get_min_max_ids(pool):
         sql = "select min(id), max(id) from transaction_normalized"
         async with pool.acquire() as connection:
             min_id, max_id = await connection.fetchrow(sql)
-    logging.info("Found min transaction id = {} and max transaction id = {} in {}".format(min_id, max_id, t))
+    logging.info(
+        f"Found min transaction id = {min_id} and max transaction id = {max_id} in {t}"
+    )
+
     return min_id, max_id
 
 

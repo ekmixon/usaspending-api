@@ -36,7 +36,7 @@ class _Keywords(_Filter):
             "description",
         ]
         for v in filter_values:
-            query = es_sanitize(v) + "*"
+            query = f"{es_sanitize(v)}*"
             if "\\" in es_sanitize(v):
                 query = es_sanitize(v) + r"\*"
             keyword_queries.append(ES_Q("query_string", query=query, default_operator="AND", fields=fields))
@@ -51,7 +51,6 @@ class _KeywordSearch(_Filter):
     def generate_elasticsearch_query(
         cls, filter_values: List[str], query_type: _QueryType, nested_path: str = ""
     ) -> ES_Q:
-        keyword_queries = []
         fields = [
             "recipient_name",
             "parent_recipient_name",
@@ -92,8 +91,10 @@ class _KeywordSearch(_Filter):
             "recipient_location_city_name",
             "modification_number",
         ]
-        for v in filter_values:
-            keyword_queries.append(ES_Q("query_string", query=v, default_operator="OR", fields=fields))
+        keyword_queries = [
+            ES_Q("query_string", query=v, default_operator="OR", fields=fields)
+            for v in filter_values
+        ]
 
         return ES_Q("dis_max", queries=keyword_queries)
 
@@ -135,10 +136,7 @@ class _AwardTypeCodes(_Filter):
     def generate_elasticsearch_query(
         cls, filter_values: List[str], query_type: _QueryType, nested_path: str = ""
     ) -> ES_Q:
-        award_type_codes_query = []
-
-        for v in filter_values:
-            award_type_codes_query.append(ES_Q("match", type=v))
+        award_type_codes_query = [ES_Q("match", type=v) for v in filter_values]
 
         return ES_Q("bool", should=award_type_codes_query, minimum_should_match=1)
 
@@ -198,7 +196,7 @@ class _RecipientSearchText(_Filter):
 
         for v in filter_values:
             upper_recipient_string = es_sanitize(v.upper())
-            query = es_sanitize(upper_recipient_string) + "*"
+            query = f"{es_sanitize(upper_recipient_string)}*"
             if "\\" in es_sanitize(upper_recipient_string):
                 query = es_sanitize(upper_recipient_string) + r"\*"
             recipient_name_query = ES_Q("query_string", query=query, default_operator="AND", fields=fields)
@@ -280,10 +278,10 @@ class _RecipientTypeNames(_Filter):
     def generate_elasticsearch_query(
         cls, filter_values: List[str], query_type: _QueryType, nested_path: str = ""
     ) -> ES_Q:
-        recipient_type_query = []
+        recipient_type_query = [
+            ES_Q("match", business_categories=v) for v in filter_values
+        ]
 
-        for v in filter_values:
-            recipient_type_query.append(ES_Q("match", business_categories=v))
 
         return ES_Q("bool", should=recipient_type_query, minimum_should_match=1)
 
@@ -396,10 +394,11 @@ class _ContractPricingTypeCodes(_Filter):
     def generate_elasticsearch_query(
         cls, filter_values: List[str], query_type: _QueryType, nested_path: str = ""
     ) -> ES_Q:
-        contract_pricing_query = []
+        contract_pricing_query = [
+            ES_Q("match", type_of_contract_pricing__keyword=v)
+            for v in filter_values
+        ]
 
-        for v in filter_values:
-            contract_pricing_query.append(ES_Q("match", type_of_contract_pricing__keyword=v))
 
         return ES_Q("bool", should=contract_pricing_query, minimum_should_match=1)
 
@@ -411,10 +410,10 @@ class _SetAsideTypeCodes(_Filter):
     def generate_elasticsearch_query(
         cls, filter_values: List[str], query_type: _QueryType, nested_path: str = ""
     ) -> ES_Q:
-        set_aside_query = []
+        set_aside_query = [
+            ES_Q("match", type_set_aside__keyword=v) for v in filter_values
+        ]
 
-        for v in filter_values:
-            set_aside_query.append(ES_Q("match", type_set_aside__keyword=v))
 
         return ES_Q("bool", should=set_aside_query, minimum_should_match=1)
 
@@ -426,10 +425,10 @@ class _ExtentCompetedTypeCodes(_Filter):
     def generate_elasticsearch_query(
         cls, filter_values: List[str], query_type: _QueryType, nested_path: str = ""
     ) -> ES_Q:
-        extent_competed_query = []
+        extent_competed_query = [
+            ES_Q("match", extent_competed__keyword=v) for v in filter_values
+        ]
 
-        for v in filter_values:
-            extent_competed_query.append(ES_Q("match", extent_competed__keyword=v))
 
         return ES_Q("bool", should=extent_competed_query, minimum_should_match=1)
 
@@ -445,10 +444,8 @@ class _DisasterEmergencyFundCodes(_Filter):
     ) -> ES_Q:
         if nested_path is None:
             nested_path = ""
-        def_codes_query = []
         def_code_field = f"{nested_path}{'.' if nested_path else ''}disaster_emergency_fund_code{'s' if query_type != _QueryType.ACCOUNTS else ''}"
-        for v in filter_values:
-            def_codes_query.append(ES_Q("match", **{def_code_field: v}))
+        def_codes_query = [ES_Q("match", **{def_code_field: v}) for v in filter_values]
         if query_type == _QueryType.TRANSACTIONS:
             return ES_Q(
                 "bool",
@@ -483,8 +480,13 @@ class _NonzeroFields(_Filter):
         non_zero_queries = []
         for field in filter_values:
             field_name = f"{nested_path}{'.' if nested_path else ''}{field}"
-            non_zero_queries.append(ES_Q("range", **{field_name: {"gt": 0}}))
-            non_zero_queries.append(ES_Q("range", **{field_name: {"lt": 0}}))
+            non_zero_queries.extend(
+                (
+                    ES_Q("range", **{field_name: {"gt": 0}}),
+                    ES_Q("range", **{field_name: {"lt": 0}}),
+                )
+            )
+
         return ES_Q("bool", should=non_zero_queries, minimum_should_match=1)
 
 

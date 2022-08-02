@@ -15,8 +15,17 @@ urlpatterns = [
     url(r"^funding/$", AwardFundingViewSet.as_view()),
     url(r"^funding_rollup/$", AwardFundingRollupViewSet.as_view()),
     url(r"^last_updated", AwardLastUpdatedViewSet.as_view()),
-    url(r"^count/transaction/{}/$".format(award_id_regex), TransactionCountRetrieveViewSet.as_view()),
-    url(r"^count/subaward/{}/$".format(award_id_regex), SubawardCountRetrieveViewSet.as_view()),
-    url(r"^count/federal_account/{}/$".format(award_id_regex), FederalAccountCountRetrieveViewSet.as_view()),
-    url(r"^{}/$".format(award_id_regex), AwardRetrieveViewSet.as_view()),
+    url(
+        f"^count/transaction/{award_id_regex}/$",
+        TransactionCountRetrieveViewSet.as_view(),
+    ),
+    url(
+        f"^count/subaward/{award_id_regex}/$",
+        SubawardCountRetrieveViewSet.as_view(),
+    ),
+    url(
+        f"^count/federal_account/{award_id_regex}/$",
+        FederalAccountCountRetrieveViewSet.as_view(),
+    ),
+    url(f"^{award_id_regex}/$", AwardRetrieveViewSet.as_view()),
 ]

@@ -78,8 +78,8 @@ class Command(BaseCommand):
 
         total_rows = len(transaction_cgac_subtier_map)
 
-        logger.info("Processing " + str(total_rows) + " rows of transaction data")
-        logger.info("Rows range from {} to {}".format(range_low, range_high))
+        logger.info(f"Processing {total_rows} rows of transaction data")
+        logger.info(f"Rows range from {range_low} to {range_high}")
 
         # Go through each D1 or D2 transaction to update awarding/funding agency if missing
 
@@ -90,10 +90,9 @@ class Command(BaseCommand):
 
             if not (index % 100):
                 logger.info(
-                    "Updating agencies: Loading row {} of {} ({})".format(
-                        str(index), str(total_rows), datetime.now() - start_time
-                    )
+                    f"Updating agencies: Loading row {str(index)} of {total_rows} ({datetime.now() - start_time})"
                 )
+
 
             index += 1
 
@@ -102,7 +101,7 @@ class Command(BaseCommand):
 
             # Skips transaction if unable to find it in Transaction Normalized
             if transaction is None:
-                logger.error("Unable to find Transaction {}".format(str(row["transaction_id"])))
+                logger.error(f'Unable to find Transaction {str(row["transaction_id"])}')
                 continue
 
             # Find the agency that this award transaction belongs to. If it doesn't exist, create it.
@@ -119,24 +118,16 @@ class Command(BaseCommand):
             # If unable to get agency moves on to the next transaction
             if awarding_agency is None and funding_agency is None:
                 logger.error(
-                    "Unable to find awarding agency CGAC {} Subtier {} and funding agency CGAC {} Subtier {}".format(
-                        row["awarding_toptier_code"],
-                        row["awarding_subtier_code"],
-                        row["funding_toptier_code"],
-                        row["awarding_subtier_code"],
-                    )
+                    f'Unable to find awarding agency CGAC {row["awarding_toptier_code"]} Subtier {row["awarding_subtier_code"]} and funding agency CGAC {row["funding_toptier_code"]} Subtier {row["awarding_subtier_code"]}'
                 )
+
                 continue
 
             if awarding_agency is None:
                 logger.error(
-                    "Unable to find awarding agency for CGAC {} Subtier {}".format(
-                        row["awarding_toptier_code"], row["awarding_subtier_code"]
-                    )
+                    f'Unable to find awarding agency for CGAC {row["awarding_toptier_code"]} Subtier {row["awarding_subtier_code"]}'
                 )
 
-            elif funding_agency is None:
-                pass
 
             transaction.awarding_agency = awarding_agency
             transaction.funding_agency = funding_agency
@@ -144,7 +135,7 @@ class Command(BaseCommand):
             award = Award.objects.filter(id=transaction.award.id).first()
 
             if award is None:
-                logger.error("Unable to find Award {}".format(str(transaction.award.id)))
+                logger.error(f"Unable to find Award {str(transaction.award.id)}")
                 continue
 
             award.awarding_agency = awarding_agency
@@ -157,7 +148,7 @@ class Command(BaseCommand):
 
             except Exception as e:
                 logger.error(
-                    "Unable to save Transaction {} and Award {}:{}".format(str(transaction.id), str(award.id), str(e))
+                    f"Unable to save Transaction {str(transaction.id)} and Award {str(award.id)}:{str(e)}"
                 )
 
     def add_arguments(self, parser):

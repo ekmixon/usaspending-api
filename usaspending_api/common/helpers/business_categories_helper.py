@@ -85,7 +85,8 @@ BUSINESS_CATEGORIES_LOOKUP_DICT = {
 def get_business_category_display_names(business_category_list):
     business_category_display_name_list = []
     for business_category in business_category_list:
-        display_name = BUSINESS_CATEGORIES_LOOKUP_DICT.get(business_category)
-        if display_name:
+        if display_name := BUSINESS_CATEGORIES_LOOKUP_DICT.get(
+            business_category
+        ):
             business_category_display_name_list.append(display_name)
     return business_category_display_name_list

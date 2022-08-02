@@ -34,7 +34,7 @@ def fetch_fabs_data_generator(dap_uid_list):
 
     for i in range(0, total_uid_count, BATCH_FETCH_SIZE):
         start_time = time.perf_counter()
-        max_index = i + BATCH_FETCH_SIZE if i + BATCH_FETCH_SIZE < total_uid_count else total_uid_count
+        max_index = min(i + BATCH_FETCH_SIZE, total_uid_count)
         fabs_ids_batch = dap_uid_list[i:max_index]
 
         logger.info(f"Fetching {i + 1}-{max_index} out of {total_uid_count} records from source table")
@@ -167,10 +167,16 @@ def upsert_fabs_transactions(ids_to_upsert, externally_updated_award_ids):
             update_award_ids = tuple(set(update_award_ids))  # Convert to tuple and remove duplicates.
             with timer("updating awards to reflect their latest associated transaction info", logger.info):
                 award_record_count = update_awards(update_award_ids)
-                logger.info("{} awards updated from their transactional data".format(award_record_count))
+                logger.info(
+                    f"{award_record_count} awards updated from their transactional data"
+                )
+
             with timer("updating awards with executive compensation data", logger.info):
                 award_record_count = update_assistance_awards(update_award_ids)
-                logger.info("{} awards updated FABS-specific and exec comp data".format(award_record_count))
+                logger.info(
+                    f"{award_record_count} awards updated FABS-specific and exec comp data"
+                )
+
 
         with timer("updating C->D linkages", logger.info):
             update_c_to_d_linkages("assistance")

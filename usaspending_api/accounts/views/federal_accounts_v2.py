@@ -28,15 +28,15 @@ class ObjectClassFederalAccountsViewSet(APIView):
     @cache_response()
     def get(self, request, pk, format=None):
         """Return the view's queryset."""
-        # create response
-        response = {"results": {}}
-
         # get federal account id from url
         fa_id = int(pk)
 
         # get FA row
         fa = FederalAccount.objects.filter(id=fa_id).first()
         if fa is None:
+            # create response
+            response = {"results": {}}
+
             return Response(response)
 
         # get tas related to FA
@@ -117,9 +117,6 @@ class SpendingOverTimeFederalAccountsViewSet(APIView):
 
     @cache_response()
     def post(self, request, pk, format=None):
-        # create response
-        response = {"results": {}}
-
         # get federal account id from url
         json_request = request.data
         group = json_request.get("group", None)
@@ -133,11 +130,11 @@ class SpendingOverTimeFederalAccountsViewSet(APIView):
         financial_account_queryset = AppropriationAccountBalances.objects.filter(
             submission__is_final_balances_for_fy=True, treasury_account_identifier__federal_account_id=int(pk)
         )
-        if group == "fy" or group == "fiscal_year":
+        filtered_fa = financial_account_queryset
+        if filters:
+            filtered_fa = filtered_fa.filter(filters)
+        if group in ["fy", "fiscal_year"]:
 
-            filtered_fa = financial_account_queryset
-            if filters:
-                filtered_fa = filtered_fa.filter(filters)
             filtered_fa = filtered_fa.annotate(
                 outlay=F("gross_outlay_amount_by_tas_cpe"),
                 obligations_incurred_filtered=F("obligations_incurred_total_by_tas_cpe"),
@@ -167,13 +164,15 @@ class SpendingOverTimeFederalAccountsViewSet(APIView):
                 key = str(key)
                 if key not in group_results:
                     group_results[key] = {
-                        "outlay": trans["outlay"] if trans["outlay"] else 0,
-                        "obligations_incurred_filtered": trans["obligations_incurred_filtered"]
-                        if trans["obligations_incurred_filtered"]
-                        else 0,
+                        "outlay": trans["outlay"] or 0,
+                        "obligations_incurred_filtered": trans[
+                            "obligations_incurred_filtered"
+                        ]
+                        or 0,
                         "obligations_incurred_other": 0,
                         "unobliged_balance": 0,
                     }
+
                 else:
                     group_results[key] = {
                         "outlay": group_results[key]["outlay"] + trans["outlay"]
@@ -198,11 +197,13 @@ class SpendingOverTimeFederalAccountsViewSet(APIView):
                     group_results[key] = {
                         "outlay": 0,
                         "obligations_incurred_filtered": 0,
-                        "obligations_incurred_other": trans["obligations_incurred_other"]
-                        if trans["obligations_incurred_other"]
-                        else 0,
-                        "unobliged_balance": trans["unobliged_balance"] if trans["unobliged_balance"] else 0,
+                        "obligations_incurred_other": trans[
+                            "obligations_incurred_other"
+                        ]
+                        or 0,
+                        "unobliged_balance": trans["unobliged_balance"] or 0,
                     }
+
                 else:
                     group_results[key] = {
                         "outlay": group_results[key]["outlay"],
@@ -217,9 +218,6 @@ class SpendingOverTimeFederalAccountsViewSet(APIView):
                     }
 
         else:  # quarterly, take months and add them up
-            filtered_fa = financial_account_queryset
-            if filters:
-                filtered_fa = filtered_fa.filter(filters)
             filtered_fa = filtered_fa.annotate(
                 outlay=F("gross_outlay_amount_by_tas_cpe"),
                 obligations_incurred_filtered=F("obligations_incurred_total_by_tas_cpe"),
@@ -250,13 +248,15 @@ class SpendingOverTimeFederalAccountsViewSet(APIView):
                 key = str(key)
                 if key not in group_results:
                     group_results[key] = {
-                        "outlay": trans["outlay"] if trans["outlay"] else 0,
-                        "obligations_incurred_filtered": trans["obligations_incurred_filtered"]
-                        if trans["obligations_incurred_filtered"]
-                        else 0,
+                        "outlay": trans["outlay"] or 0,
+                        "obligations_incurred_filtered": trans[
+                            "obligations_incurred_filtered"
+                        ]
+                        or 0,
                         "obligations_incurred_other": 0,
                         "unobliged_balance": 0,
                     }
+
                 else:
                     group_results[key] = {
                         "outlay": group_results[key]["outlay"] + trans["outlay"]
@@ -280,11 +280,13 @@ class SpendingOverTimeFederalAccountsViewSet(APIView):
                     group_results[key] = {
                         "outlay": 0,
                         "obligations_incurred_filtered": 0,
-                        "obligations_incurred_other": trans["obligations_incurred_other"]
-                        if trans["obligations_incurred_other"]
-                        else 0,
-                        "unobliged_balance": trans["unobliged_balance"] if trans["unobliged_balance"] else 0,
+                        "obligations_incurred_other": trans[
+                            "obligations_incurred_other"
+                        ]
+                        or 0,
+                        "unobliged_balance": trans["unobliged_balance"] or 0,
                     }
+
                 else:
                     group_results[key] = {
                         "outlay": group_results[key]["outlay"],
@@ -318,15 +320,14 @@ class SpendingOverTimeFederalAccountsViewSet(APIView):
             value["time_period"] = key_dict
             result = value
             results.append(result)
-        response["results"] = results
-
+        response = {"results": results}
         return Response(response)
 
 
 def filter_on(prefix, key, values):
     if not isinstance(values, (list, tuple)):
         values = [values]
-    return Q(**{"{}__{}__in".format(prefix, key): values})
+    return Q(**{f"{prefix}__{key}__in": values})
 
 
 def orred_filter_list(prefix, subfilters):
@@ -368,9 +369,12 @@ def federal_account_filter(filters, extra=""):
     result = Q()
     for (key, values) in filters.items():
         if key == "object_class":
-            result &= orred_filter_list(prefix=extra + "object_class", subfilters=values)
+            result &= orred_filter_list(prefix=f"{extra}object_class", subfilters=values)
         elif key == "program_activity":
-            result &= filter_on(extra + "program_activity", "program_activity_code", values)
+            result &= filter_on(
+                f"{extra}program_activity", "program_activity_code", values
+            )
+
         elif key == "time_period":
             result &= orred_date_filter_list(date_ranges=values)
     return result
@@ -436,10 +440,12 @@ class FederalAccountViewSet(APIView):
 
     @cache_response()
     def get(self, request, fed_acct_code, format=None):
-        federal_account = (
+        if federal_account := (
             FederalAccount.objects.filter(federal_account_code=fed_acct_code)
             .annotate(
-                parent_agency_toptier_code=F("parent_toptier_agency__toptier_code"),
+                parent_agency_toptier_code=F(
+                    "parent_toptier_agency__toptier_code"
+                ),
                 parent_agency_name=F("parent_toptier_agency__name"),
             )
             .values(
@@ -451,12 +457,12 @@ class FederalAccountViewSet(APIView):
                 "parent_agency_toptier_code",
                 "parent_agency_name",
             )
-        )
-
-        if not federal_account:
-            raise InvalidParameterException("Federal Account with code {} does not exist.".format(fed_acct_code))
-
-        return Response(federal_account[0])
+        ):
+            return Response(federal_account[0])
+        else:
+            raise InvalidParameterException(
+                f"Federal Account with code {fed_acct_code} does not exist."
+            )
 
 
 class FederalAccountsViewSet(APIView):
@@ -588,7 +594,7 @@ class FederalAccountsViewSet(APIView):
         )
         resultset = resultset[lower_limit : upper_limit + 1]
         page_metadata = get_simple_pagination_metadata(len(resultset), limit, page)
-        result.update(page_metadata)
+        result |= page_metadata
         resultset = resultset[:limit]
 
         result["results"] = resultset

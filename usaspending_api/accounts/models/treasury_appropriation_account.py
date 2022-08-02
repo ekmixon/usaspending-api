@@ -79,11 +79,7 @@ class TreasuryAppropriationAccount(DataSourceTrackedModel):
             components = tas_rendering_label.split("-")
             if len(components) < 4 or len(components) > 5:
                 raise Exception  # don't have to be specific here since this is being swallowed and replaced
-            retval = {}
-            # we go in reverse, since the first component is the only optional one
-            retval["sub"] = components[-1]
-            retval["main"] = components[-2]
-
+            retval = {"sub": components[-1], "main": components[-2]}
             # the third component from the back can either be two years, or one character
             if len(components[-3]) > 1:
                 dates = components[-3].split("/")
@@ -163,11 +159,14 @@ class TreasuryAppropriationAccount(DataSourceTrackedModel):
             budget_authority[fiscal_year] += ab.budget_authority_appropriated_amount_cpe
             outlays[fiscal_year] += ab.gross_outlay_amount_by_tas_cpe
             obligations[fiscal_year] += ab.obligations_incurred_total_by_tas_cpe
-        results = {
-            "outgoing": {"outlays": outlays, "obligations": obligations, "budget_authority": budget_authority},
+        return {
+            "outgoing": {
+                "outlays": outlays,
+                "obligations": obligations,
+                "budget_authority": budget_authority,
+            },
             "incoming": {},
         }
-        return results
 
     objects = CTEManager()
 

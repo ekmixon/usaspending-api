@@ -35,7 +35,7 @@ class Command(BaseCommand):
         return new_duns, update_duns
 
     def add_duns(self, new_duns, update_date):
-        logger.info("Adding {} duns records".format(len(new_duns)))
+        logger.info(f"Adding {len(new_duns)} duns records")
         new_records = []
         for row in new_duns:
             new_record = load_data_into_model(
@@ -56,7 +56,7 @@ class Command(BaseCommand):
         DUNS.objects.bulk_create(new_records)
 
     def update_duns(self, update_duns, update_date):
-        logger.info("Updating {} duns records".format(len(update_duns)))
+        logger.info(f"Updating {len(update_duns)} duns records")
         for row in update_duns:
             equivalent_duns = DUNS.objects.filter(broker_duns_id=row["duns_id"])[0]
             load_data_into_model(
@@ -92,4 +92,6 @@ class Command(BaseCommand):
         self.add_duns(new_duns, new_update_date)
         self.update_duns(update_duns, new_update_date)
 
-        logger.info("Finished updating DUNS in %s seconds" % str(datetime.now() - total_start))
+        logger.info(
+            f"Finished updating DUNS in {str(datetime.now() - total_start)} seconds"
+        )

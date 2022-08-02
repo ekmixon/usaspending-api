@@ -35,29 +35,65 @@ def test_pagination():
     # Normal tests
     results = ["A", "B", "C", "D", "E"]
     populated_page_metadata = {"next": 2, "hasNext": True, "count": 5, "page": 1}
-    assert get_pagination(results, 1, 1) == (["A"], {**empty_page_metadata, **populated_page_metadata})
+    assert get_pagination(results, 1, 1) == (
+        ["A"],
+        empty_page_metadata | populated_page_metadata,
+    )
+
     populated_page_metadata = {"next": 5, "hasNext": True, "previous": 3, "hasPrevious": True, "count": 5, "page": 4}
-    assert get_pagination(results, 1, 4) == (["D"], {**empty_page_metadata, **populated_page_metadata})
+    assert get_pagination(results, 1, 4) == (
+        ["D"],
+        empty_page_metadata | populated_page_metadata,
+    )
+
     populated_page_metadata = {"next": 2, "hasNext": True, "count": 5, "page": 1}
-    assert get_pagination(results, 3, 1) == (["A", "B", "C"], {**empty_page_metadata, **populated_page_metadata})
+    assert get_pagination(results, 3, 1) == (
+        ["A", "B", "C"],
+        empty_page_metadata | populated_page_metadata,
+    )
+
     populated_page_metadata = {"previous": 1, "hasPrevious": True, "count": 5, "page": 2}
-    assert get_pagination(results, 3, 2) == (["D", "E"], {**empty_page_metadata, **populated_page_metadata})
+    assert get_pagination(results, 3, 2) == (
+        ["D", "E"],
+        empty_page_metadata | populated_page_metadata,
+    )
+
     # Testing special cases
     populated_page_metadata = {"previous": 5, "hasPrevious": True, "count": 5, "page": 6}
-    assert get_pagination(results, 1, 6) == ([], {**empty_page_metadata, **populated_page_metadata})
+    assert get_pagination(results, 1, 6) == (
+        [],
+        empty_page_metadata | populated_page_metadata,
+    )
+
     populated_page_metadata = {"previous": 1, "hasPrevious": True, "count": 5, "page": 2}
-    assert get_pagination(results, 5, 2) == ([], {**empty_page_metadata, **populated_page_metadata})
+    assert get_pagination(results, 5, 2) == (
+        [],
+        empty_page_metadata | populated_page_metadata,
+    )
+
     populated_page_metadata = {"page": 1, "count": 5}
     assert get_pagination(results, 1000, 1) == (
         ["A", "B", "C", "D", "E"],
-        {**empty_page_metadata, **populated_page_metadata},
+        empty_page_metadata | populated_page_metadata,
     )
+
     populated_page_metadata = {"previous": 1, "hasPrevious": True, "page": 2, "count": 5}
-    assert get_pagination(results, 1000, 2) == ([], {**empty_page_metadata, **populated_page_metadata})
+    assert get_pagination(results, 1000, 2) == (
+        [],
+        empty_page_metadata | populated_page_metadata,
+    )
+
     populated_page_metadata = {"page": 1, "count": 5}
-    assert get_pagination(results, 0, 1) == ([], {**empty_page_metadata, **populated_page_metadata})
+    assert get_pagination(results, 0, 1) == (
+        [],
+        empty_page_metadata | populated_page_metadata,
+    )
+
     populated_page_metadata = {"page": 0, "count": 5}
-    assert get_pagination(results, 10, 0) == ([], {**empty_page_metadata, **populated_page_metadata})
+    assert get_pagination(results, 10, 0) == (
+        [],
+        empty_page_metadata | populated_page_metadata,
+    )
 
 
 @pytest.mark.parametrize("raw_date, expected_fy", legal_dates.items())
@@ -94,13 +130,13 @@ def test_timer_times(capsys):
     with timer():
         print("Doing a thing")
     output0 = capsys.readouterr()[0]
-    time0 = float(pattern.search(output0).group(1))
+    time0 = float(pattern.search(output0)[1])
 
     with timer():
         print("Doing a slower thing")
         time.sleep(0.1)
     output1 = capsys.readouterr()[0]
-    time1 = float(pattern.search(output1).group(1))
+    time1 = float(pattern.search(output1)[1])
 
     assert time1 > time0
 

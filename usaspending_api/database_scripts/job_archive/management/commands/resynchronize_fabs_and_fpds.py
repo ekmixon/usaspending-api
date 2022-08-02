@@ -394,8 +394,7 @@ class Command(BaseCommand):
                 cursor.execute(sql)
                 results = cursor.fetchall()
 
-            ids = tuple(row[0] for row in results)
-            if ids:
+            if ids := tuple(row[0] for row in results):
                 raise RuntimeError(
                     f"ERROR!  Somehow we managed to identify {key_column}s that should not be "
                     f"deleted!  {ids if len(ids) < 1000 else 'There are too many to list.'}"
@@ -419,10 +418,6 @@ class Command(BaseCommand):
                     f"  {task['destination_table']}: All {task['key_column']}s in {task['minuend_table']} "
                     f"that are not in {task['subtrahend_table']}"
                 )
-            else:
-                # This task type generates no artifact.
-                pass
-
         logger.info("\n".join(messages))
 
     def delete_fabs_source_records(self):
@@ -440,24 +435,21 @@ class Command(BaseCommand):
 
     @staticmethod
     def add_fabs_source_records():
-        ids = get_ids(TEMP_SOURCE_FABS_ADD_IDS_TABLE)
-        if ids:
+        if ids := get_ids(TEMP_SOURCE_FABS_ADD_IDS_TABLE):
             call_command("transfer_assistance_records", "--ids", *ids)
         else:
             logger.info("No FABS source records to add")
 
     @staticmethod
     def delete_fpds_source_records():
-        ids = get_ids(TEMP_SOURCE_FPDS_DELETE_IDS_TABLE)
-        if ids:
+        if ids := get_ids(TEMP_SOURCE_FPDS_DELETE_IDS_TABLE):
             call_command("delete_procurement_records", "--ids", *ids)
         else:
             logger.info("No FPDS source records to delete")
 
     @staticmethod
     def add_fpds_source_records():
-        ids = get_ids(TEMP_SOURCE_FPDS_ADD_IDS_TABLE)
-        if ids:
+        if ids := get_ids(TEMP_SOURCE_FPDS_ADD_IDS_TABLE):
             call_command("transfer_procurement_records", "--ids", *ids)
         else:
             logger.info("No FPDS source records to add")

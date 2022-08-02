@@ -19,14 +19,17 @@ class ETLMixin:
         """ Convenience function to run delete, update, and create ETL operations. """
         rows_affected = 0
         rows_affected += self._execute_function_and_log(
-            delete_obsolete_rows, "Delete obsolete {}".format(what), source, destination
+            delete_obsolete_rows, f"Delete obsolete {what}", source, destination
         )
+
         rows_affected += self._execute_function_and_log(
-            update_changed_rows, "Update changed {}".format(what), source, destination
+            update_changed_rows, f"Update changed {what}", source, destination
         )
+
         rows_affected += self._execute_function_and_log(
-            insert_missing_rows, "Insert missing {}".format(what), source, destination
+            insert_missing_rows, f"Insert missing {what}", source, destination
         )
+
         return rows_affected
 
     def _execute_dml_sql(self, sql: Union[str, Composed], timer_message: Optional[str] = None) -> int:

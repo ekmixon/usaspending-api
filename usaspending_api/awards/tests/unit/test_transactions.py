@@ -20,10 +20,7 @@ def format_response(api_dict):
     resp = {k: v for k, v in api_dict.items() if k != "id"}
     resp = svs._format_results([resp])[0]
     for k, v in resp.items():
-        if k in dec_fields:
-            resp[k] = Decimal(v)
-        else:
-            resp[k] = v
+        resp[k] = Decimal(v) if k in dec_fields else v
     return resp
 
 

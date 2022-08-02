@@ -80,8 +80,7 @@ def _get_ids(sql, ids, afa_ids, start_datetime, end_datetime):
     params = []
     if ids and afa_ids:
         sql += " and (published_award_financial_assistance_id in %s or afa_generated_unique in %s)"
-        params.append(tuple(ids))
-        params.append(tuple(afa_ids))
+        params.extend((tuple(ids), tuple(afa_ids)))
     elif ids:
         sql += " and published_award_financial_assistance_id in %s"
         params.append(tuple(ids))

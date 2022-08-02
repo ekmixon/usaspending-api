@@ -44,9 +44,10 @@ class TestElasticSearchIndex:
             "query_alias_prefix": self.alias_prefix,
             "verbose": False,
             "verbosity": 0,
-            "write_alias": self.index_name + "-load-alias",
+            "write_alias": f"{self.index_name}-load-alias",
             "process_deletes": True,
         }
+
         self.worker = TaskSpec(
             base_table=None,
             base_table_id=None,
@@ -142,11 +143,7 @@ class TestElasticSearchIndex:
             routing_key = options.get("routing", settings.ES_ROUTING_FIELD)
             routing_value = record.get(routing_key)
 
-            if "_id" in record:
-                es_id_value = record.pop("_id")
-            else:
-                es_id_value = record.get(es_id)
-
+            es_id_value = record.pop("_id") if "_id" in record else record.get(es_id)
             self.client.index(
                 index=self.index_name,
                 body=json.dumps(record, cls=DjangoJSONEncoder),
@@ -159,11 +156,11 @@ class TestElasticSearchIndex:
     def _generate_index_name(self):
         required_suffix = ""
         if self.index_type == "award":
-            required_suffix = "-" + settings.ES_AWARDS_NAME_SUFFIX
-        elif self.index_type == "transaction":
-            required_suffix = "-" + settings.ES_TRANSACTIONS_NAME_SUFFIX
+            required_suffix = f"-{settings.ES_AWARDS_NAME_SUFFIX}"
         elif self.index_type == "covid19-faba":
-            required_suffix = "-" + settings.ES_COVID19_FABA_NAME_SUFFIX
+            required_suffix = f"-{settings.ES_COVID19_FABA_NAME_SUFFIX}"
+        elif self.index_type == "transaction":
+            required_suffix = f"-{settings.ES_TRANSACTIONS_NAME_SUFFIX}"
         return (
             f"test-{datetime.now(timezone.utc).strftime('%Y-%m-%d-%H-%M-%S-%f')}"
             f"-{generate_random_string()}"
@@ -188,13 +185,20 @@ def ensure_broker_server_dblink_exists():
     """
     # Gather tokens from database connection strings
     if DEFAULT_DB_ALIAS not in settings.DATABASES:
-        raise Exception("'{}' database not configured in django settings.DATABASES".format(DEFAULT_DB_ALIAS))
+        raise Exception(
+            f"'{DEFAULT_DB_ALIAS}' database not configured in django settings.DATABASES"
+        )
+
     if "data_broker" not in settings.DATABASES:
         raise Exception("'data_broker' database not configured in django settings.DATABASES")
     db_conn_tokens_dict = {
-        **{"USASPENDING_DB_" + k: v for k, v in settings.DATABASES[DEFAULT_DB_ALIAS].items()},
-        **{"BROKER_DB_" + k: v for k, v in settings.DATABASES["data_broker"].items()},
+        f"USASPENDING_DB_{k}": v
+        for k, v in settings.DATABASES[DEFAULT_DB_ALIAS].items()
+    } | {
+        f"BROKER_DB_{k}": v
+        for k, v in settings.DATABASES["data_broker"].items()
     }
+
 
     extensions_script_path = str(settings.APP_DIR / "database_scripts" / "extensions" / "extensions.sql")
     broker_server_script_path = str(settings.APP_DIR / "database_scripts" / "servers" / "broker_server.sql")
@@ -229,7 +233,7 @@ def remove_unittest_queue_data_files(queue_to_tear_down):
     # Check that it's the unit test queue before removing
     assert q.url.split("/")[-1] == UNITTEST_FAKE_QUEUE_NAME
     queue_data_file = q._QUEUE_DATA_FILE
-    lock_file_path = Path(queue_data_file + ".lock")
+    lock_file_path = Path(f"{queue_data_file}.lock")
     if lock_file_path.exists():
         lock_file_path.unlink()
     queue_data_file_path = Path(queue_data_file)

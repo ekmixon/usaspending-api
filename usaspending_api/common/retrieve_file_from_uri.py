@@ -13,7 +13,7 @@ SCHEMA_HELP_TEXT = (
     "Internet RFC on Relative Uniform Resource Locators "
     + "Format: scheme://netloc/path;parameters?query#fragment "
     + "List of supported schemes: "
-    + ", ".join(["{}://".format(s) for s in VALID_SCHEMES if s])
+    + ", ".join([f"{s}://" for s in VALID_SCHEMES if s])
 )
 
 
@@ -74,7 +74,9 @@ class RetrieveFileFromUri:
         elif self.parsed_url_obj.scheme in ("file", ""):
             return self._handle_file(text)
         else:
-            raise NotImplementedError("No handler for scheme: {}!".format(self.parsed_url_obj.scheme))
+            raise NotImplementedError(
+                f"No handler for scheme: {self.parsed_url_obj.scheme}!"
+            )
 
     def copy(self, dest_file_path):
         """
@@ -91,7 +93,9 @@ class RetrieveFileFromUri:
         elif self.parsed_url_obj.scheme in ("file", ""):
             copyfile(self.ruri, dest_file_path)
         else:
-            raise NotImplementedError("No handler for scheme: {}!".format(self.parsed_url_obj.scheme))
+            raise NotImplementedError(
+                f"No handler for scheme: {self.parsed_url_obj.scheme}!"
+            )
 
     def copy_to_temporary_file(self):
         """Sometimes it is super helpful to just have a nice, concrete, local file to work with."""

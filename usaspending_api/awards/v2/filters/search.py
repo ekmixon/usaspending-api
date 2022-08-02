@@ -46,7 +46,10 @@ def matview_search_filter(filters, model, for_downloads=False):
 
     for key, value in filters.items():
         if value is None:
-            raise InvalidParameterException("Invalid filter: " + key + " has null as its value.")
+            raise InvalidParameterException(
+                f"Invalid filter: {key} has null as its value."
+            )
+
 
         key_list = [
             "keywords",
@@ -80,7 +83,7 @@ def matview_search_filter(filters, model, for_downloads=False):
         ]
 
         if key not in key_list:
-            raise InvalidParameterException("Invalid filter: " + key + " does not exist.")
+            raise InvalidParameterException(f"Invalid filter: {key} does not exist.")
 
         if key == "keywords":
 
@@ -101,7 +104,7 @@ def matview_search_filter(filters, model, for_downloads=False):
             for keyword in value:
                 filter_obj |= keyword_parse(keyword)
             potential_duns = list(filter((lambda x: len(x) > 7 and len(x) < 10), value))
-            if len(potential_duns) > 0:
+            if potential_duns:
                 filter_obj |= Q(recipient_unique_id__in=potential_duns) | Q(
                     parent_recipient_unique_id__in=potential_duns
                 )
@@ -253,8 +256,8 @@ def matview_search_filter(filters, model, for_downloads=False):
             queryset = build_award_ids_filter(queryset, value, ("piid", "fain", "uri"))
 
         elif key == "program_numbers":
-            in_query = [v for v in value]
-            if len(in_query) != 0:
+            in_query = list(value)
+            if in_query:
                 queryset = queryset.filter(cfda_number__in=in_query)
 
         elif key == "naics_codes":
@@ -283,8 +286,8 @@ def matview_search_filter(filters, model, for_downloads=False):
             queryset = queryset.filter(q) if q else queryset
 
         elif key == "contract_pricing_type_codes":
-            in_query = [v for v in value]
-            if len(in_query) != 0:
+            in_query = list(value)
+            if in_query:
                 queryset = queryset.filter(type_of_contract_pricing__in=in_query)
 
         elif key == "set_aside_type_codes":
@@ -299,8 +302,6 @@ def matview_search_filter(filters, model, for_downloads=False):
                 or_queryset |= Q(extent_competed__exact=v)
             queryset = queryset.filter(or_queryset)
 
-        # Because these two filters OR with each other, we need to know about the presence of both filters to know what to do
-        # This filter was picked arbitrarily to be the one that checks for the other
         elif key == TasCodes.underscore_name:
             q = TasCodes.build_tas_codes_filter(queryset, value)
             if TreasuryAccounts.underscore_name in filters.keys():
@@ -310,7 +311,6 @@ def matview_search_filter(filters, model, for_downloads=False):
         elif key == TreasuryAccounts.underscore_name and TasCodes.underscore_name not in filters.keys():
             queryset = queryset.filter(TreasuryAccounts.build_tas_codes_filter(queryset, value))
 
-        # Federal Account Filter
         elif key == "federal_account_ids":
             faba_flag = True
             or_queryset = Q()
@@ -318,7 +318,6 @@ def matview_search_filter(filters, model, for_downloads=False):
                 or_queryset |= Q(treasury_account__federal_account_id=v)
             faba_queryset = faba_queryset.filter(or_queryset)
 
-        # Federal Account Filter
         elif key == "object_class":
             result = Q()
             for oc in value:
@@ -327,7 +326,6 @@ def matview_search_filter(filters, model, for_downloads=False):
                 result |= subresult
             queryset = queryset.filter(result)
 
-        # Federal Account Filter
         elif key == "program_activity":
             or_queryset = Q()
             for v in value:

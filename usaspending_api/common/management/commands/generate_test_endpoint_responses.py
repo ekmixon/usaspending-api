@@ -14,15 +14,10 @@ class Command(BaseCommand):
     logger = logging.getLogger("console")
 
     def handle(self, *args, **options):
-        # Note, you should load the test fixture into your db after a flush
-        # It is not performed in this management command for you because
-        # we don't want to accidentally delete important data
-        json_data = open(
+        with open(
             os.path.join(os.path.dirname(__file__), "../../../data/testing_data/endpoint_testing_data.json")
-        )
-        endpoints = json.load(json_data)
-        json_data.close()
-
+        ) as json_data:
+            endpoints = json.load(json_data)
         # We now have our endpoints. For each endpoint, we will perform the request
         # and then update the dictionary. After, we will serialize it to JSON and
         # print it to the screen, suitable for redirection directly back into the

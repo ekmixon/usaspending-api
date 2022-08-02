@@ -56,8 +56,9 @@ def award_from_id(award_id):
         "references.ToptierAgency",
         toptier_agency_id=8500 + award_id,
         toptier_code=str(award_id).zfill(3),
-        name="toptier_awarding_agency_name_%s" % (8500 + award_id),
+        name=f"toptier_awarding_agency_name_{8500 + award_id}",
     )
+
 
     awarding_agency = mommy.make(
         "references.Agency",
@@ -71,8 +72,9 @@ def award_from_id(award_id):
         "references.ToptierAgency",
         toptier_agency_id=9500 + award_id,
         toptier_code=str(100 + award_id).zfill(3),
-        name="toptier_funding_agency_name_%s" % (9500 + award_id),
+        name=f"toptier_funding_agency_name_{9500 + award_id}",
     )
+
 
     funding_agency = mommy.make(
         "references.Agency",
@@ -86,28 +88,32 @@ def award_from_id(award_id):
     mommy.make(
         "awards.TransactionFPDS",
         transaction_id=transaction_normalized.id,
-        funding_agency_name="subtier_funding_agency_name_%s" % transaction_normalized.id,
+        funding_agency_name=f"subtier_funding_agency_name_{transaction_normalized.id}",
         ordering_period_end_date="2018-01-%02d" % award_id,
-        awardee_or_recipient_uniqu="duns_%s" % (7000 + award_id),
+        awardee_or_recipient_uniqu=f"duns_{7000 + award_id}",
         period_of_perf_potential_e="2018-08-%02d" % award_id,
     )
+
 
     mommy.make(
         "awards.Award",
         id=award_id,
-        generated_unique_award_id="GENERATED_UNIQUE_AWARD_ID_%s" % string_award_id,
-        piid="piid_%s" % string_award_id,
-        type_description="type_description_%s" % string_award_id,
-        description="description_%s" % string_award_id,
-        fpds_agency_id="fpds_agency_id_%s" % string_award_id,
+        generated_unique_award_id=f"GENERATED_UNIQUE_AWARD_ID_{string_award_id}",
+        piid=f"piid_{string_award_id}",
+        type_description=f"type_description_{string_award_id}",
+        description=f"description_{string_award_id}",
+        fpds_agency_id=f"fpds_agency_id_{string_award_id}",
         awarding_agency_id=awarding_agency.id if award_id % 3 == 1 else None,
-        funding_agency_id=funding_agency.id if (award_id + 1) % 2 == 1 else None,
+        funding_agency_id=funding_agency.id
+        if (award_id + 1) % 2 == 1
+        else None,
         latest_transaction_id=transaction_normalized.id,
         total_obligation=100000 + award_id,
         base_and_all_options_value=500000 + award_id,
         period_of_performance_current_end_date="2018-03-%02d" % award_id,
         period_of_performance_start_date="2018-02-%02d" % award_id,
     )
+
 
     submission_attributes = mommy.make(
         "submissions.SubmissionAttributes",
@@ -131,36 +137,40 @@ def award_from_id(award_id):
             id=2000 + federal_account_id,
             agency_identifier=funding_toptier_agency.toptier_code,
             main_account_code=str(federal_account_id).zfill(4),
-            account_title="federal_account_title_%s" % (2000 + federal_account_id),
-            federal_account_code=funding_toptier_agency.toptier_code + "-" + str(federal_account_id).zfill(4),
+            account_title=f"federal_account_title_{2000 + federal_account_id}",
+            federal_account_code=f"{funding_toptier_agency.toptier_code}-{str(federal_account_id).zfill(4)}",
         )
+
 
         treasury_appropriation_account = mommy.make(
             "accounts.TreasuryAppropriationAccount",
             treasury_account_identifier=3000 + federal_account_id,
             federal_account_id=federal_account.id,
             reporting_agency_id=awarding_toptier_agency.toptier_code,
-            reporting_agency_name="reporting_agency_name_%s" % awarding_toptier_agency.toptier_code,
+            reporting_agency_name=f"reporting_agency_name_{awarding_toptier_agency.toptier_code}",
             agency_id=federal_account.agency_identifier,
             main_account_code=federal_account.main_account_code,
-            account_title="treasury_appropriation_account_title_%s" % string_federal_account_id,
+            account_title=f"treasury_appropriation_account_title_{string_federal_account_id}",
             awarding_toptier_agency_id=awarding_toptier_agency.toptier_agency_id,
             funding_toptier_agency_id=funding_toptier_agency.toptier_agency_id,
         )
+
 
         ref_program_activity = mommy.make(
             "references.RefProgramActivity",
             id=4000 + federal_account_id,
             program_activity_code=str(4000 + federal_account_id),
-            program_activity_name="program_activity_%s" % (4000 + federal_account_id),
+            program_activity_name=f"program_activity_{4000 + federal_account_id}",
         )
+
 
         object_class = mommy.make(
             "references.ObjectClass",
             id=5000 + federal_account_id,
             object_class=5000 + federal_account_id,
-            object_class_name="object_class_%s" % (5000 + federal_account_id),
+            object_class_name=f"object_class_{5000 + federal_account_id}",
         )
+
 
         mommy.make(
             "awards.FinancialAccountsByAwards",
@@ -177,17 +187,18 @@ def award_from_id(award_id):
         "recipient.RecipientLookup",
         id=7000 + award_id,
         recipient_hash=RECIPIENT_HASH_PREFIX + str(7000 + award_id),
-        legal_business_name="recipient_name_%s" % (7000 + award_id),
-        duns="duns_%s" % (7000 + award_id),
+        legal_business_name=f"recipient_name_{7000 + award_id}",
+        duns=f"duns_{7000 + award_id}",
     )
+
 
     mommy.make(
         "recipient.RecipientProfile",
         id=8000 + award_id,
         recipient_hash=RECIPIENT_HASH_PREFIX + str(7000 + award_id),
         recipient_level="R",
-        recipient_name="recipient_name_%s" % (7000 + award_id),
-        recipient_unique_id="duns_%s" % (7000 + award_id),
+        recipient_name=f"recipient_name_{7000 + award_id}",
+        recipient_unique_id=f"duns_{7000 + award_id}",
     )
 
 

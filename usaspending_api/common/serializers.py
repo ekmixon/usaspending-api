@@ -19,22 +19,12 @@ class LimitableSerializer(serializers.ModelSerializer):
 
         current_viewset = self.context.get("view")
 
-        request = self.context.get("request", None)
-        params = {}
-        if request:
-            params = dict(request.query_params)
-            params.update(dict(request.data))
-
-        param_exclude_fields = []
-        param_include_fields = []
-
-        # If no kwargs excludes, check the request
-        if not kwargs_has_exclude:
-            param_exclude_fields = params.get("exclude", [])
-
-        if not kwargs_has_include:
-            param_include_fields = params.get("fields", [])
-
+        if request := self.context.get("request", None):
+            params = dict(request.query_params) | request.data
+        else:
+            params = {}
+        param_exclude_fields = [] if kwargs_has_exclude else params.get("exclude", [])
+        param_include_fields = [] if kwargs_has_include else params.get("fields", [])
         exclude_fields = []
         include_fields = []
 
@@ -43,14 +33,14 @@ class LimitableSerializer(serializers.ModelSerializer):
             # Otherwise, use the fields from the lists
             exclude_fields = param_exclude_fields + kwargs_exclude_fields
 
-            if len(exclude_fields) == 0 and hasattr(self.Meta, "default_exclude"):
+            if not exclude_fields and hasattr(self.Meta, "default_exclude"):
                 exclude_fields = self.Meta.default_exclude
 
             # If we're not in a detail view, we can use the include lists
             if not current_viewset or current_viewset.action != "retrieve":
                 include_fields = param_include_fields + kwargs_include_fields
 
-                if len(include_fields) == 0 and hasattr(self.Meta, "default_fields"):
+                if not include_fields and hasattr(self.Meta, "default_fields"):
                     include_fields = self.Meta.default_fields
 
                 # For the include list, we need to include the parent field of
@@ -121,7 +111,7 @@ class LimitableSerializer(serializers.ModelSerializer):
     def get_child_fields(self, child, fields):
         # An included field is a child's field if the field begins with that
         # child's name and two underscores
-        pattern = "{}__".format(child)
+        pattern = f"{child}__"
 
         matched = []
         child_fields = []
@@ -168,9 +158,7 @@ class AggregateSerializer(serializers.Serializer):
         super(AggregateSerializer, self).__init__(*args, **kwargs)
 
         request = self.context.get("request", None)
-        params = dict(request.query_params)
-        params.update(dict(request.data))
-
+        params = dict(request.query_params) | request.data
         include_fields = params.get("group")
         if not isinstance(include_fields, list):
             include_fields = [include_fields]

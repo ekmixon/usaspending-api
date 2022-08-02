@@ -130,8 +130,8 @@ def argparse_fiscal_period(input_string):
 
 
 def argparse_fiscal_quarter(input_string):
-    msg = "Fiscal quarter must be a single numeric digit from 1 to 4."
     if not re.fullmatch("[1-4]", input_string):
+        msg = "Fiscal quarter must be a single numeric digit from 1 to 4."
         raise ArgumentTypeError(msg)
     return int(input_string)
 
@@ -337,20 +337,12 @@ def validate_not_same_period(
 def validate_period_has_submissions(fiscal_year, fiscal_period):
     if not period_has_submissions(fiscal_year, fiscal_period):
         raise RuntimeError(
-            f"Well congratulations.  You've managed to choose a fiscal period with no "
-            f"submissions.  Give 'select reporting_fiscal_year, reporting_fiscal_period, "
-            f"count(*) from submission_attributes where group by reporting_fiscal_year, "
-            f"reporting_fiscal_period order by reporting_fiscal_year, "
-            f"reporting_fiscal_period;' a whirl and try again."
+            "Well congratulations.  You've managed to choose a fiscal period with no submissions.  Give 'select reporting_fiscal_year, reporting_fiscal_period, count(*) from submission_attributes where group by reporting_fiscal_year, reporting_fiscal_period order by reporting_fiscal_year, reporting_fiscal_period;' a whirl and try again."
         )
 
 
 def validate_quarter_has_submissions(fiscal_year, fiscal_quarter):
     if not quarter_has_submissions(fiscal_year, fiscal_quarter):
         raise RuntimeError(
-            f"Well congratulations.  You've managed to choose a fiscal quarter with no "
-            f"submissions.  Give 'select reporting_fiscal_year, reporting_fiscal_quarter, "
-            f"count(*) from submission_attributes group by reporting_fiscal_year, "
-            f"reporting_fiscal_quarter order by reporting_fiscal_year,"
-            f"reporting_fiscal_quarter;' a whirl and try again."
+            "Well congratulations.  You've managed to choose a fiscal quarter with no submissions.  Give 'select reporting_fiscal_year, reporting_fiscal_quarter, count(*) from submission_attributes group by reporting_fiscal_year, reporting_fiscal_quarter order by reporting_fiscal_year,reporting_fiscal_quarter;' a whirl and try again."
         )

@@ -36,7 +36,7 @@ def pytest_configure():
         host = connections[connection_name].settings_dict.get("HOST")
         if "amazonaws" in host:
             raise RuntimeError(
-                "Connection '{}' appears to be pointing to an AWS database: [{}]".format(connection_name, host)
+                f"Connection '{connection_name}' appears to be pointing to an AWS database: [{host}]"
             )
 
 
@@ -205,8 +205,8 @@ def broker_db_setup(django_db_setup, django_db_use_migrations):
     broker_src_dir_path_obj = settings.REPO_DIR.parent / "data-act-broker-backend"
     broker_src_target = "/data-act/backend"
     broker_config_dir = "dataactcore"
-    broker_config_copy_target = "/tmp/" + broker_config_dir + "/"
-    broker_config_mask_target = broker_src_target + "/" + broker_config_dir + "/"
+    broker_config_copy_target = f"/tmp/{broker_config_dir}/"
+    broker_config_mask_target = f"{broker_src_target}/{broker_config_dir}/"
     broker_example_default_config_file = "config_example.yml"
     broker_example_env_config_file = "local_config_example.yml"
     broker_example_env_secrets_file = "local_secrets_example.yml"
@@ -229,19 +229,25 @@ def broker_db_setup(django_db_setup, django_db_use_migrations):
     # Check required Broker docker image is available
     found = docker_client.images.list(name=broker_docker_image)
     if not found:
-        logger.error("Error finding required docker image in images registry: {}".format(broker_docker_image))
-        pytest.skip(
-            "Could not find the Docker Image named {} used to setup a broker database. "
-            "Skipping tests of integration with the Broker DB".format(broker_docker_image)
+        logger.error(
+            f"Error finding required docker image in images registry: {broker_docker_image}"
         )
+
+        pytest.skip(
+            f"Could not find the Docker Image named {broker_docker_image} used to setup a broker database. Skipping tests of integration with the Broker DB"
+        )
+
 
     # Check that the Broker source code is checked out
     if not Path.exists(broker_src_dir_path_obj):
-        logger.error("Error finding required broker source code at path: {}".format(broker_src_dir_path_obj))
-        pytest.skip(
-            "Could not find the Broker source code checked out next to this repo's source code, at {}. "
-            "Skipping tests of integration with the Broker DB".format(broker_src_dir_path_obj)
+        logger.error(
+            f"Error finding required broker source code at path: {broker_src_dir_path_obj}"
         )
+
+        pytest.skip(
+            f"Could not find the Broker source code checked out next to this repo's source code, at {broker_src_dir_path_obj}. Skipping tests of integration with the Broker DB"
+        )
+
 
     # Run the DB setup script using the Broker docker image.
     if "data_broker" not in settings.DATABASES:
@@ -344,8 +350,7 @@ def temp_file_path():
 
 @pytest.fixture(scope="session")
 def unittest_fake_sqs_queue_instance():
-    fake_unittest_q = _FakeUnitTestFileBackedSQSQueue.instance()
-    yield fake_unittest_q
+    yield _FakeUnitTestFileBackedSQSQueue.instance()
 
 
 @pytest.fixture(scope="session")

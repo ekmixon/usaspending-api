@@ -111,11 +111,11 @@ with Timer() as overall_timer:
         print("Max ID: {:,}".format(max_id), flush=True)
 
         with Timer() as chunk_timer:
-            for n, sql in enumerate(SQLS):
+            for sql in SQLS:
                 _min = min_id
                 while _min <= max_id:
                     _max = min(_min + CHUNK_SIZE - 1, max_id)
                     run_update_query()
                     _min = _max + 1
 
-print("Finished.  Overall run time: %s" % overall_timer.elapsed_as_string)
+print(f"Finished.  Overall run time: {overall_timer.elapsed_as_string}")

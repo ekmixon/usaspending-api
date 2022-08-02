@@ -20,7 +20,7 @@ def award_types(row):
     if pulled_from != "IDV":
         award_type = row.get("contract_award_type")
     elif idv_type == "B" and type_of_idc is not None:
-        award_type = "IDV_B_{}".format(type_of_idc)
+        award_type = f"IDV_B_{type_of_idc}"
     elif idv_type == "B" and type_of_idc_description == "INDEFINITE DELIVERY / REQUIREMENTS":
         award_type = "IDV_B_A"
     elif idv_type == "B" and type_of_idc_description == "INDEFINITE DELIVERY / INDEFINITE QUANTITY":
@@ -28,7 +28,7 @@ def award_types(row):
     elif idv_type == "B" and type_of_idc_description == "INDEFINITE DELIVERY / DEFINITE QUANTITY":
         award_type = "IDV_B_C"
     else:
-        award_type = "IDV_{}".format(idv_type)
+        award_type = f"IDV_{idv_type}"
 
     if pulled_from != "IDV":
         award_type_desc = row.get("contract_award_type_desc")

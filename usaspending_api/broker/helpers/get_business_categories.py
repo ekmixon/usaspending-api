@@ -44,7 +44,7 @@ def get_business_categories(row, data_type):
         if business_types == "E":
             business_category_set.add("regional_organization")
 
-        if business_types == "F":
+        elif business_types == "F":
             business_category_set.add("us_territory_or_possession")
 
         if business_types in ("B", "C", "D", "G", "01", "02", "04", "05"):

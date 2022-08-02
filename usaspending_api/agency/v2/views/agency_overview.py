@@ -72,7 +72,7 @@ class AgencyOverview(AgencyBase):
             )
             .distinct()
         )
-        results = [
+        return [
             {
                 "code": x["disaster_emergency_fund"],
                 "public_law": x["disaster_emergency_fund__public_law"],
@@ -82,4 +82,3 @@ class AgencyOverview(AgencyBase):
             }
             for x in defc
         ]
-        return results

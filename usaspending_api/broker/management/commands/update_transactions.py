@@ -45,14 +45,11 @@ class Command(BaseCommand):
         query = "SELECT * FROM published_award_financial_assistance"
         arguments = []
 
-        fy_begin = "10/01/" + str(fiscal_year - 1)
-        fy_end = "09/30/" + str(fiscal_year)
+        fy_begin = f"10/01/{str(fiscal_year - 1)}"
+        fy_end = f"09/30/{str(fiscal_year)}"
 
         if fiscal_year:
-            if arguments:
-                query += " AND"
-            else:
-                query += " WHERE"
+            query += " AND" if arguments else " WHERE"
             query += " action_date::Date BETWEEN %s AND %s"
             arguments += [fy_begin]
             arguments += [fy_end]
@@ -91,7 +88,7 @@ class Command(BaseCommand):
 
         total_rows = len(award_financial_assistance_data)  # - rows_loaded
 
-        logger.info("Processing " + str(total_rows) + " rows of assistance data")
+        logger.info(f"Processing {total_rows} rows of assistance data")
 
         # ROW ITERATION STARTS HERE
 
@@ -103,7 +100,10 @@ class Command(BaseCommand):
         awarding_agency_list = []
         funding_agency_list = []
 
-        logger.info("Getting award objects for {} rows...".format(len(award_financial_assistance_data)))
+        logger.info(
+            f"Getting award objects for {len(award_financial_assistance_data)} rows..."
+        )
+
         for index, row in enumerate(award_financial_assistance_data, 1):
             # If awarding toptier agency code (aka CGAC) is not supplied on the D2 record,
             # use the sub tier code to look it up. This code assumes that all incoming
@@ -150,13 +150,16 @@ class Command(BaseCommand):
             award_update_id_list.append(award.id)
             award_assistance_update_id_list.append(award.id)
 
-        logger.info("Bulk creating {} award rows...".format(len(award_bulk)))
+        logger.info(f"Bulk creating {len(award_bulk)} award rows...")
         try:
             Award.objects.bulk_create(award_bulk)
         except IntegrityError:
             logger.info("!!! DUPLICATES FOUND. Continuing... ")
 
-        logger.info("Getting transaction_normalized for {} rows...".format(len(award_financial_assistance_data)))
+        logger.info(
+            f"Getting transaction_normalized for {len(award_financial_assistance_data)} rows..."
+        )
+
         for index, row in enumerate(award_financial_assistance_data, 1):
 
             parent_txn_value_map = {
@@ -180,7 +183,10 @@ class Command(BaseCommand):
             transaction_normalized.fiscal_year = fy(transaction_normalized.action_date)
             transaction_normalized_bulk.append(transaction_normalized)
 
-        logger.info("Bulk creating {} TransactionNormalized rows...".format(len(transaction_normalized_bulk)))
+        logger.info(
+            f"Bulk creating {len(transaction_normalized_bulk)} TransactionNormalized rows..."
+        )
+
         try:
             TransactionNormalized.objects.bulk_create(transaction_normalized_bulk)
         except IntegrityError:
@@ -218,14 +224,11 @@ class Command(BaseCommand):
         query = "SELECT * FROM detached_award_procurement"
         arguments = []
 
-        fy_begin = "10/01/" + str(fiscal_year - 1)
-        fy_end = "09/30/" + str(fiscal_year)
+        fy_begin = f"10/01/{str(fiscal_year - 1)}"
+        fy_end = f"09/30/{str(fiscal_year)}"
 
         if fiscal_year:
-            if arguments:
-                query += " AND"
-            else:
-                query += " WHERE"
+            query += " AND" if arguments else " WHERE"
             query += " action_date::Date BETWEEN %s AND %s"
             arguments += [fy_begin]
             arguments += [fy_end]
@@ -260,7 +263,7 @@ class Command(BaseCommand):
 
         total_rows = len(procurement_data)  # - rows_loaded
 
-        logger.info("Processing " + str(total_rows) + " rows of procurement data")
+        logger.info(f"Processing {total_rows} rows of procurement data")
 
         start_time = datetime.now()
         for index, row in enumerate(procurement_data, 1):
@@ -268,10 +271,9 @@ class Command(BaseCommand):
 
                 if not (index % 100):
                     logger.info(
-                        "D1 File Load: Loading row {} of {} ({})".format(
-                            str(index), str(total_rows), datetime.now() - start_time
-                        )
+                        f"D1 File Load: Loading row {str(index)} of {total_rows} ({datetime.now() - start_time})"
                     )
+
 
                 # If awarding toptier agency code (aka CGAC) is not supplied on the D2 record,
                 # use the sub tier code to look it up. This code assumes that all incoming
@@ -384,7 +386,7 @@ class Command(BaseCommand):
 
         if fiscal_year:
             fiscal_year = fiscal_year[0]
-            logger.info("Processing data for Fiscal Year " + str(fiscal_year))
+            logger.info(f"Processing data for Fiscal Year {str(fiscal_year)}")
         else:
             fiscal_year = 2017
 

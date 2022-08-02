@@ -19,14 +19,18 @@ class BudgetAuthorityViewSet(CachedDetailViewSet):
         "Generate the order_by string based on query parameters"
         sort_by = self.request.query_params.get("sort", "year").lower()
         if sort_by not in self.ordering_fields:
-            raise InvalidParameterException("sort should be one of {}, not {}".format(self.ordering_fields, sort_by))
+            raise InvalidParameterException(
+                f"sort should be one of {self.ordering_fields}, not {sort_by}"
+            )
+
         order_by = self.request.query_params.get("order", "asc").lower()
         if order_by not in self.order_directions:
             raise InvalidParameterException(
-                "order should be {}, not {}".format(" or ".join(self.order_directions), order_by)
+                f'order should be {" or ".join(self.order_directions)}, not {order_by}'
             )
 
-        return "{}{}".format(self.order_directions[order_by], sort_by)
+
+        return f"{self.order_directions[order_by]}{sort_by}"
         # I tried to use standard DRF OrderingFilter, but failed, maybe
         # do to our project's view customizations?
 
@@ -36,7 +40,6 @@ class BudgetAuthorityViewSet(CachedDetailViewSet):
             BudgetAuthority.objects.filter(agency_identifier__iexact=cgac).values("year").annotate(total=Sum("amount"))
         )
         result = result.order_by(self.sort())
-        frec = self.request.query_params.get("frec", None)
-        if frec:
+        if frec := self.request.query_params.get("frec", None):
             result = result.filter(fr_entity_code__iexact=frec)
         return result.all()

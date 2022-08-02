@@ -19,9 +19,15 @@ def count_rows_in_delimited_file(filename, has_header=True, safe=True, delimiter
     """
     with codecs.open(filename, "r") as f:
         if safe:
-            row_count = sum(1 for row in csv.reader((line.replace("\0", "") for line in f), delimiter=delimiter))
+            row_count = sum(
+                1
+                for _ in csv.reader(
+                    (line.replace("\0", "") for line in f), delimiter=delimiter
+                )
+            )
+
         else:
-            row_count = sum(1 for row in csv.reader(f, delimiter=delimiter))
+            row_count = sum(1 for _ in csv.reader(f, delimiter=delimiter))
     if has_header and row_count > 0:
         row_count -= 1
 

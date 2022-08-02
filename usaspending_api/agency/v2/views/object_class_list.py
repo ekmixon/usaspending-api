@@ -60,7 +60,7 @@ class ObjectClassList(PaginationMixin, AgencyBase):
         ]
         if self.filter:
             filters.append(Q(object_class_name__icontains=self.filter))
-        queryset_results = (
+        return (
             ObjectClass.objects.filter(*filters)
             .annotate(
                 name=F("object_class_name"),
@@ -71,7 +71,8 @@ class ObjectClassList(PaginationMixin, AgencyBase):
                     "financialaccountsbyprogramactivityobjectclass__gross_outlay_amount_by_program_object_class_cpe"
                 ),
             )
-            .order_by(f"{'-' if self.pagination.sort_order == 'desc' else ''}{self.pagination.sort_key}")
+            .order_by(
+                f"{'-' if self.pagination.sort_order == 'desc' else ''}{self.pagination.sort_key}"
+            )
             .values("name", "obligated_amount", "gross_outlay_amount")
         )
-        return queryset_results

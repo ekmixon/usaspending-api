@@ -3,10 +3,7 @@ def get_model_by_name(models, name):
     Little helper function to return a TinyShield model from a list of models
     given the model's name.  Returns None if the model was not found.
     """
-    for model in models:
-        if model.get("name") == name:
-            return model
-    return None
+    return next((model for model in models if model.get("name") == name), None)
 
 
 def update_model_in_list(model_list: list, model_name: str, new_dict: dict, replace: bool = False) -> list:

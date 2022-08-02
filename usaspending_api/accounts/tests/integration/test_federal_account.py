@@ -97,11 +97,17 @@ def test_federal_account_spending_by_category_unique_program_activity_names(clie
 
     actual_results = {
         "result_count": len(result_content),
-        "program_activity_name_via_item": [entry["item"] for entry in result_content],
-        "program_activity_name_via_field": [
-            entry["program_activity__program_activity_name"] for entry in result_content
+        "program_activity_name_via_item": [
+            entry["item"] for entry in result_content
         ],
-        "program_activity_totals": sum([Decimal(entry["aggregate"]) for entry in result_content]),
+        "program_activity_name_via_field": [
+            entry["program_activity__program_activity_name"]
+            for entry in result_content
+        ],
+        "program_activity_totals": sum(
+            Decimal(entry["aggregate"]) for entry in result_content
+        ),
     }
+
 
     assert expected_results == actual_results

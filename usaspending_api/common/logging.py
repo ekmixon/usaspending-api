@@ -110,10 +110,9 @@ class LoggingMiddleware(MiddlewareMixin):
             # Adding separate error message to message field for user to view error on Kibana default view
             error_msg_str = "[" + self.log["error_msg"] + "]"
 
-            self.server_logger.warning("{} {}".format(self.get_message_string(), error_msg_str), extra=self.log)
-        else:
-            # 500 or greater messages will be processed by the process_exception function
-            pass
+            self.server_logger.warning(
+                f"{self.get_message_string()} {error_msg_str}", extra=self.log
+            )
 
         return response
 

@@ -28,7 +28,7 @@ class Command(BaseCommand):
         model_name = options["model"][0]
         model = apps.get_model(model_name)
 
-        print("This data is represented internally as the model: `" + model.__name__ + "`")
+        print(f"This data is represented internally as the model: `{model.__name__}`")
 
         # Print the markdown header
         print("| Field | Type | Description |")
@@ -39,12 +39,11 @@ class Command(BaseCommand):
             friendly_type = self.friendly_names.get(internal_type, internal_type)
             field_name = field.name
             if hasattr(field, "parent_link"):
-                description = (
-                    "Reverse look-up for relation from " + field.related_model.__name__ + "::" + field.field.name
-                )
+                description = f"Reverse look-up for relation from {field.related_model.__name__}::{field.field.name}"
+
             elif field.primary_key and field.help_text == "":
                 description = "Internal primary key. Guaranteed to be unique."
             else:
                 description = field.help_text
 
-            print("| " + field_name + " | " + friendly_type + " | " + description + " | ")
+            print(f"| {field_name} | {friendly_type} | {description} | ")

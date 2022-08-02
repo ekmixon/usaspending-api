@@ -225,7 +225,10 @@ def create_recipient_object(db_row_dict: dict) -> OrderedDict:
 def create_place_of_performance_object(db_row_dict: dict) -> OrderedDict:
     return OrderedDict(
         [
-            ("location_country_code", db_row_dict["_pop_location_country_code"]),
+            (
+                "location_country_code",
+                db_row_dict["_pop_location_country_code"],
+            ),
             ("country_name", db_row_dict["_pop_country_name"]),
             ("county_code", db_row_dict["_pop_county_code"]),
             ("county_name", db_row_dict["_pop_county_name"]),
@@ -233,14 +236,12 @@ def create_place_of_performance_object(db_row_dict: dict) -> OrderedDict:
             (
                 "state_code",
                 db_row_dict["_pop_state_code"]
-                if db_row_dict["_pop_state_code"]
-                else state_code_from_name(db_row_dict["_pop_state_name"]),
+                or state_code_from_name(db_row_dict["_pop_state_name"]),
             ),
             (
                 "state_name",
                 db_row_dict["_pop_state_name"]
-                if db_row_dict["_pop_state_name"]
-                else state_name_from_code(db_row_dict["_pop_state_code"]),
+                or state_name_from_code(db_row_dict["_pop_state_code"]),
             ),
             ("congressional_code", db_row_dict["_pop_congressional_code"]),
             ("zip4", db_row_dict["_pop_zip4"]),
@@ -259,8 +260,8 @@ def create_officers_object(award: dict) -> dict:
     return {
         "officers": [
             {
-                "name": award.get("_officer_{}_name".format(officer_num)),
-                "amount": award.get("_officer_{}_amount".format(officer_num)),
+                "name": award.get(f"_officer_{officer_num}_name"),
+                "amount": award.get(f"_officer_{officer_num}_amount"),
             }
             for officer_num in range(1, 6)
         ]
@@ -273,7 +274,10 @@ def fetch_award_details(filter_q: dict, mapper_fields: OrderedDict) -> dict:
 
 
 def fetch_contract_parent_award_details(parent_piid: str, parent_fpds_agency: str) -> Optional[OrderedDict]:
-    parent_guai = "CONT_IDV_{}_{}".format(parent_piid or "NONE", parent_fpds_agency or "NONE")
+    parent_guai = (
+        f'CONT_IDV_{parent_piid or "NONE"}_{parent_fpds_agency or "NONE"}'
+    )
+
 
     parent_award_ids = (
         ParentAward.objects.filter(generated_unique_award_id=parent_guai)
@@ -320,7 +324,7 @@ def _fetch_parent_award_details(parent_award_ids: dict) -> Optional[OrderedDict]
     )
 
     if not parent_award:
-        logging.debug("Unable to find award for award id %s" % parent_award_award_id)
+        logging.debug(f"Unable to find award for award id {parent_award_award_id}")
         return None
 
     parent_sub_agency = (
@@ -345,25 +349,46 @@ def _fetch_parent_award_details(parent_award_ids: dict) -> Optional[OrderedDict]
         else None
     )
 
-    parent_object = OrderedDict(
+    return OrderedDict(
         [
             ("agency_id", parent_agency["id"] if parent_agency else None),
-            ("agency_name", parent_agency["toptier_agency__name"] if parent_agency else None),
-            ("sub_agency_id", parent_award["latest_transaction__contract_data__agency_id"]),
-            ("sub_agency_name", parent_sub_agency["name"] if parent_sub_agency else None),
+            (
+                "agency_name",
+                parent_agency["toptier_agency__name"]
+                if parent_agency
+                else None,
+            ),
+            (
+                "sub_agency_id",
+                parent_award["latest_transaction__contract_data__agency_id"],
+            ),
+            (
+                "sub_agency_name",
+                parent_sub_agency["name"] if parent_sub_agency else None,
+            ),
             ("award_id", parent_award_award_id),
             ("generated_unique_award_id", parent_award_guai),
-            ("idv_type_description", parent_award["latest_transaction__contract_data__idv_type_description"]),
+            (
+                "idv_type_description",
+                parent_award[
+                    "latest_transaction__contract_data__idv_type_description"
+                ],
+            ),
             (
                 "multiple_or_single_aw_desc",
-                parent_award["latest_transaction__contract_data__multiple_or_single_aw_desc"],
+                parent_award[
+                    "latest_transaction__contract_data__multiple_or_single_aw_desc"
+                ],
             ),
             ("piid", parent_award["latest_transaction__contract_data__piid"]),
-            ("type_of_idc_description", parent_award["latest_transaction__contract_data__type_of_idc_description"]),
+            (
+                "type_of_idc_description",
+                parent_award[
+                    "latest_transaction__contract_data__type_of_idc_description"
+                ],
+            ),
         ]
     )
-
-    return parent_object
 
 
 def fetch_fabs_details_by_pk(primary_key: int, mapper: OrderedDict) -> dict:
@@ -403,11 +428,8 @@ def fetch_agency_details(agency_id: int) -> Optional[dict]:
         "subtier_agency__name",
         "subtier_agency__abbreviation",
     ]
-    agency = Agency.objects.filter(pk=agency_id).values(*values).first()
-
-    agency_details = None
-    if agency:
-        agency_details = {
+    return (
+        {
             "id": agency_id,
             "has_agency_page": agency_has_file_c_submission(agency_id),
             "toptier_agency": {
@@ -421,13 +443,21 @@ def fetch_agency_details(agency_id: int) -> Optional[dict]:
                 "abbreviation": agency["subtier_agency__abbreviation"],
             },
         }
-    return agency_details
+        if (
+            agency := Agency.objects.filter(pk=agency_id)
+            .values(*values)
+            .first()
+        )
+        else None
+    )
 
 
 def fetch_business_categories_by_transaction_id(transaction_id: int) -> list:
-    tn = TransactionNormalized.objects.filter(pk=transaction_id).values("business_categories").first()
-
-    if tn:
+    if (
+        tn := TransactionNormalized.objects.filter(pk=transaction_id)
+        .values("business_categories")
+        .first()
+    ):
         return tn["business_categories"]
     return []
 
@@ -448,31 +478,37 @@ def fetch_all_cfda_details(award: dict) -> list:
     for transaction in queryset:
         clean_cfda_number_str = normalize_cfda_number_format(transaction)
         if cfda_dicts.get(clean_cfda_number_str):
-            cfda_dicts.update(
-                {
-                    clean_cfda_number_str: {
-                        "federal_action_obligation": cfda_dicts[clean_cfda_number_str]["federal_action_obligation"]
-                        + Decimal(transaction["federal_action_obligation"] or 0),
-                        "non_federal_funding_amount": cfda_dicts[clean_cfda_number_str]["non_federal_funding_amount"]
-                        + Decimal(transaction["non_federal_funding_amount"] or 0),
-                        "total_funding_amount": cfda_dicts[clean_cfda_number_str]["total_funding_amount"]
-                        + Decimal(transaction["total_funding_amount"] or 0),
-                    }
-                }
-            )
+            cfda_dicts[clean_cfda_number_str] = {
+                "federal_action_obligation": cfda_dicts[clean_cfda_number_str][
+                    "federal_action_obligation"
+                ]
+                + Decimal(transaction["federal_action_obligation"] or 0),
+                "non_federal_funding_amount": cfda_dicts[
+                    clean_cfda_number_str
+                ]["non_federal_funding_amount"]
+                + Decimal(transaction["non_federal_funding_amount"] or 0),
+                "total_funding_amount": cfda_dicts[clean_cfda_number_str][
+                    "total_funding_amount"
+                ]
+                + Decimal(transaction["total_funding_amount"] or 0),
+            }
+
         else:
-            cfda_dicts.update(
-                {
-                    clean_cfda_number_str: {
-                        "federal_action_obligation": Decimal(transaction["federal_action_obligation"] or 0),
-                        "non_federal_funding_amount": Decimal(transaction["non_federal_funding_amount"] or 0),
-                        "total_funding_amount": Decimal(transaction["total_funding_amount"] or 0),
-                    }
-                }
-            )
+            cfda_dicts[clean_cfda_number_str] = {
+                "federal_action_obligation": Decimal(
+                    transaction["federal_action_obligation"] or 0
+                ),
+                "non_federal_funding_amount": Decimal(
+                    transaction["non_federal_funding_amount"] or 0
+                ),
+                "total_funding_amount": Decimal(
+                    transaction["total_funding_amount"] or 0
+                ),
+            }
+
 
     final_cfda_objects = []
-    for cfda_number in cfda_dicts.keys():
+    for cfda_number in cfda_dicts:
         details = fetch_cfda_details_using_cfda_number(cfda_number)
         if details.get("url") == "None;":
             details.update({"url": None})
@@ -517,10 +553,9 @@ def fetch_cfda_details_using_cfda_number(cfda: str) -> dict:
 
 
 def fetch_transaction_obligated_amount_by_internal_award_id(internal_award_id: int) -> Optional[Decimal]:
-    _sum = FinancialAccountsByAwards.objects.filter(award_id=internal_award_id).aggregate(
-        Sum("transaction_obligated_amount")
-    )
-    if _sum:
+    if _sum := FinancialAccountsByAwards.objects.filter(
+        award_id=internal_award_id
+    ).aggregate(Sum("transaction_obligated_amount")):
         return _sum["transaction_obligated_amount__sum"]
 
     return None
@@ -555,13 +590,12 @@ def fetch_psc_hierarchy(psc_code: str) -> dict:
         except PSC.DoesNotExist:
             pass
 
-    results = {
+    return {
         "toptier_code": toptier_code,
         "midtier_code": midtier_code,
         "subtier_code": subtier_code,
         "base_code": base_code,
     }
-    return results
 
 
 def fetch_naics_hierarchy(naics: str) -> dict:
@@ -584,8 +618,11 @@ def fetch_naics_hierarchy(naics: str) -> dict:
         base_code = {"code": base.code, "description": base.description}
     except NAICS.DoesNotExist:
         pass
-    results = {"toptier_code": toptier_code, "midtier_code": midtier_code, "base_code": base_code}
-    return results
+    return {
+        "toptier_code": toptier_code,
+        "midtier_code": midtier_code,
+        "base_code": base_code,
+    }
 
 
 def fetch_account_details_award(award_id: int) -> dict:

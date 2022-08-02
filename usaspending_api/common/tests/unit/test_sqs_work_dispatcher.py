@@ -593,7 +593,7 @@ class SQSWorkDispatcherTests(TestCase):
         parent monitors this, and initiates exit-handling. Because the dispatcher allows retries, this message
         should be made receivable again on the queue.
         """
-        logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
+        logger = logging.getLogger(f"{__name__}.{inspect.stack()[0][3]}")
         logger.setLevel(logging.DEBUG)
 
         msg_body = randint(1111, 9998)
@@ -639,7 +639,7 @@ class SQSWorkDispatcherTests(TestCase):
         parent monitors this, and initiates exit-handling. Because the dispatcher does not allow retries, the
         message is copied to the dead letter queue, and deleted from the queue.
         """
-        logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
+        logger = logging.getLogger(f"{__name__}.{inspect.stack()[0][3]}")
         logger.setLevel(logging.DEBUG)
 
         msg_body = randint(1111, 9998)
@@ -689,7 +689,7 @@ class SQSWorkDispatcherTests(TestCase):
         exits. Verify that the exit code it exits with is the negative value of the signal received, consistent with
         how Python handles this.
         """
-        logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
+        logger = logging.getLogger(f"{__name__}.{inspect.stack()[0][3]}")
         logger.setLevel(logging.DEBUG)
 
         msg_body = randint(1111, 9998)
@@ -737,9 +737,9 @@ class SQSWorkDispatcherTests(TestCase):
         finally:
             if worker and worker.is_running():
                 logger.warning(
-                    "Dispatched worker process with PID {} did not complete in timeout. "
-                    "Killing it.".format(worker.pid)
+                    f"Dispatched worker process with PID {worker.pid} did not complete in timeout. Killing it."
                 )
+
                 os.kill(worker.pid, signal.SIGKILL)
                 self.fail("Worker did not complete in timeout as expected. Test fails.")
             self._fail_runaway_processes(logger, dispatcher=parent_dispatcher)
@@ -748,7 +748,7 @@ class SQSWorkDispatcherTests(TestCase):
         """Verify that exit_handlers provided whose signatures allow keyword args can receive the queue message
         as a keyword arg
         """
-        logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
+        logger = logging.getLogger(f"{__name__}.{inspect.stack()[0][3]}")
         logger.setLevel(logging.DEBUG)
 
         msg_body = randint(1111, 9998)
@@ -822,7 +822,7 @@ class SQSWorkDispatcherTests(TestCase):
         """Same as testing exit handling when allowing retries, but not setting the long_poll_seconds value,
         to leave it to the default setting.
         """
-        logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
+        logger = logging.getLogger(f"{__name__}.{inspect.stack()[0][3]}")
         logger.setLevel(logging.DEBUG)
 
         msg_body = randint(1111, 9998)
@@ -868,7 +868,7 @@ class SQSWorkDispatcherTests(TestCase):
         longer than exit_handling_timeout, the message will be put on the dead letter queue, deleted from the
         origin queue, and :exc:`QueueWorkDispatcherError` will be raised stating unable to do exit handling
         """
-        logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
+        logger = logging.getLogger(f"{__name__}.{inspect.stack()[0][3]}")
         logger.setLevel(logging.DEBUG)
 
         msg_body = randint(1111, 9998)
@@ -960,7 +960,7 @@ class SQSWorkDispatcherTests(TestCase):
         Slight differences from :meth:`test_hanging_cleanup_fails_dispatcher_and_sends_to_dlq` is that the child
         worker process is not "dead" when doing these exit_handling cleanups.
         """
-        logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
+        logger = logging.getLogger(f"{__name__}.{inspect.stack()[0][3]}")
         logger.setLevel(logging.DEBUG)
 
         msg_body = randint(1111, 9998)
@@ -1078,7 +1078,7 @@ class SQSWorkDispatcherTests(TestCase):
         worker is detected to still be alive, and proceeds with "cleanup" if it is detected as killed. It
         therefore simulates successful cleanup on the 2nd try.
         """
-        logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
+        logger = logging.getLogger(f"{__name__}.{inspect.stack()[0][3]}")
         logger.setLevel(logging.DEBUG)
 
         msg_body = randint(1111, 9998)
@@ -1088,9 +1088,9 @@ class SQSWorkDispatcherTests(TestCase):
         cleanup_timeout = int(worker_sleep_interval + 3)  # how long to allow cleanup to run, max (integer seconds)
 
         def hanging_cleanup_if_worker_alive(
-            task_id, termination_queue: mp.Queue, work_tracking_queue: mp.Queue, queue_message
-        ):
-            cleanup_logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
+                task_id, termination_queue: mp.Queue, work_tracking_queue: mp.Queue, queue_message
+            ):
+            cleanup_logger = logging.getLogger(f"{__name__}.{inspect.stack()[0][3]}")
             cleanup_logger.setLevel(logging.DEBUG)
             cleanup_logger.debug("CLEANUP CLEANUP CLEANUP !!!!!!!!!!!!!!")
 
@@ -1224,7 +1224,7 @@ class SQSWorkDispatcherTests(TestCase):
         """Same as :meth:`test_cleanup_second_try_succeeds_after_killing_worker_with_dlq`, but this queue allows
         retries. Changes asserts to ensure the message gets retried after cleanup.
         """
-        logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
+        logger = logging.getLogger(f"{__name__}.{inspect.stack()[0][3]}")
         logger.setLevel(logging.DEBUG)
 
         msg_body = randint(1111, 9998)
@@ -1234,13 +1234,13 @@ class SQSWorkDispatcherTests(TestCase):
         cleanup_timeout = int(worker_sleep_interval + 3)  # how long to allow cleanup to run, max (integer seconds)
 
         def hanging_cleanup_if_worker_alive(
-            task_id,
-            termination_queue: mp.Queue,
-            work_tracking_queue: mp.SimpleQueue,
-            queue_message,
-            cleanup_timeout=cleanup_timeout,
-        ):
-            cleanup_logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
+                task_id,
+                termination_queue: mp.Queue,
+                work_tracking_queue: mp.SimpleQueue,
+                queue_message,
+                cleanup_timeout=cleanup_timeout,
+            ):
+            cleanup_logger = logging.getLogger(f"{__name__}.{inspect.stack()[0][3]}")
             cleanup_logger.setLevel(logging.DEBUG)
             cleanup_logger.debug("CLEANUP CLEANUP CLEANUP !!!!!!!!!!!!!!")
 
@@ -1502,14 +1502,14 @@ class SQSWorkDispatcherTests(TestCase):
         # Wait until there is a worker in the given dispatcher to kill
         pid = None
         while not pid:
-            logger.debug("No work yet to be terminated. Waiting {} seconds".format(sleep_interval))
+            logger.debug(f"No work yet to be terminated. Waiting {sleep_interval} seconds")
             sleep(sleep_interval)
             pid = terminate_queue.get()
 
         # Process is running. Now terminate it with signal.SIGTERM
-        logger.debug("Found work to be terminated: Worker PID=[{}]".format(pid))
+        logger.debug(f"Found work to be terminated: Worker PID=[{pid}]")
         os.kill(pid, signal.SIGTERM)
-        logger.debug("Terminated worker with PID=[{}] using signal.SIGTERM".format(pid))
+        logger.debug(f"Terminated worker with PID=[{pid}] using signal.SIGTERM")
 
     @classmethod
     def _work_to_be_terminated(
@@ -1527,22 +1527,23 @@ class SQSWorkDispatcherTests(TestCase):
         fail_with_runaway_proc = False
         if worker and worker.is_alive():
             logger.warning(
-                "Dispatched worker process with PID {} did not complete in timeout. Killing it.".format(worker.pid)
+                f"Dispatched worker process with PID {worker.pid} did not complete in timeout. Killing it."
             )
+
             os.kill(worker.pid, signal.SIGKILL)
             fail_with_runaway_proc = True
         if terminator and terminator.is_alive():
             logger.warning(
-                "Terminator worker process with PID {} did not complete in timeout. "
-                "Killing it.".format(terminator.pid)
+                f"Terminator worker process with PID {terminator.pid} did not complete in timeout. Killing it."
             )
+
             os.kill(terminator.pid, signal.SIGKILL)
             fail_with_runaway_proc = True
         if dispatcher and dispatcher.is_alive():
             logger.warning(
-                "Parent dispatcher process with PID {} did not complete in timeout. "
-                "Killing it.".format(dispatcher.pid)
+                f"Parent dispatcher process with PID {dispatcher.pid} did not complete in timeout. Killing it."
             )
+
             os.kill(dispatcher.pid, signal.SIGKILL)
             fail_with_runaway_proc = True
         if fail_with_runaway_proc:

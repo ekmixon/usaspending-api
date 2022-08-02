@@ -86,19 +86,21 @@ class AgencyBase(APIView):
 
     @cached_property
     def agency_id(self):
-        agency = Agency.objects.filter(toptier_flag=True, toptier_agency=self.toptier_agency).values("id")
-        if not agency:
+        if agency := Agency.objects.filter(
+            toptier_flag=True, toptier_agency=self.toptier_agency
+        ).values("id"):
+            return agency[0]["id"]
+        else:
             raise NotFound(f"Cannot find Agency for toptier code of '{self.toptier_code}'")
-        return agency[0]["id"]
 
     @cached_property
     def toptier_agency(self):
-        toptier_agency = ToptierAgency.objects.filter(
+        if toptier_agency := ToptierAgency.objects.filter(
             toptieragencypublisheddabsview__toptier_code=self.toptier_code
-        ).first()
-        if not toptier_agency:
+        ).first():
+            return toptier_agency
+        else:
             raise NotFound(f"Agency with a toptier code of '{self.toptier_code}' does not exist")
-        return toptier_agency
 
     @cached_property
     def fiscal_year(self):

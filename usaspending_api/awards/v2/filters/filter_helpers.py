@@ -52,14 +52,15 @@ def date_list_to_queryset(date_list, table):
         date_type_dict = v.get("date_type_dict", {"gte": "action_date", "lte": "action_date"})
         for date_type in date_type_dict.values():
             if date_type not in ["action_date", "last_modified_date", "date_signed"]:
-                raise InvalidParameterException("Invalid date_type: {}".format(date_type))
+                raise InvalidParameterException(f"Invalid date_type: {date_type}")
 
         # (StartA <= EndB)  and  (EndA >= StartB)
         # where "A" is an Award and "B" is the date range being searched
         kwargs = {
-            "{}__gte".format(date_type_dict["gte"]): v["start_date"],
-            "{}__lte".format(date_type_dict["lte"]): v["end_date"],
+            f'{date_type_dict["gte"]}__gte': v["start_date"],
+            f'{date_type_dict["lte"]}__lte': v["end_date"],
         }
+
         or_queryset |= Q(**kwargs)
 
     return table.objects.filter(or_queryset)
@@ -102,10 +103,7 @@ def combine_date_range_queryset(date_dicts, table, min_start, max_end, dt_format
 def get_total_transaction_column(model):
     """Returns column name based on model"""
 
-    if model == SubawardView:
-        return "amount"
-    else:
-        return "award_amount"
+    return "amount" if model == SubawardView else "award_amount"
 
 
 def total_obligation_queryset(amount_obj, model, filters):
@@ -118,7 +116,7 @@ def total_obligation_queryset(amount_obj, model, filters):
                 if lower_bound == values["lower"] and upper_bound == values["upper"]:
                     bins.extend(values["enums"])
                     break
-        or_queryset = model.objects.filter(total_obl_bin__in=set(bins))
+        return model.objects.filter(total_obl_bin__in=set(bins))
     else:
         column = get_total_transaction_column(model)
         bound_filters = Q()
@@ -135,9 +133,7 @@ def total_obligation_queryset(amount_obj, model, filters):
 
             bound_filters |= Q(**bound_dict)
 
-        or_queryset = model.objects.filter(bound_filters)
-
-    return or_queryset
+        return model.objects.filter(bound_filters)
 
 
 def can_use_month_aggregation(time_period):
@@ -185,21 +181,19 @@ def only_action_date_type(time_period):
 
 
 def transform_keyword(request, api_version):
-    filter_obj = request.data.get("filters", None)
-    if filter_obj:
+    if filter_obj := request.data.get("filters", None):
         if "keyword" not in filter_obj and "keywords" not in filter_obj:
             return request
         keyword_array_passed = filter_obj.get("keywords", False)
         keyword_string_passed = filter_obj.pop("keyword", None)
         if api_version < 3:
-            keywords = keyword_array_passed if keyword_array_passed else [keyword_string_passed]
+            keywords = keyword_array_passed or [keyword_string_passed]
+        elif keyword_array_passed:
+            keywords = keyword_array_passed
         else:
-            if keyword_array_passed:
-                keywords = keyword_array_passed
-            else:
-                raise InvalidParameterException(
-                    "keyword' is deprecated. Please use 'keywords'. See documentation for more information."
-                )
+            raise InvalidParameterException(
+                "keyword' is deprecated. Please use 'keywords'. See documentation for more information."
+            )
         filter_obj["keywords"] = keywords
         request.data["filters"] = filter_obj
     return request

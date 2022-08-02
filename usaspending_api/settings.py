@@ -289,8 +289,9 @@ elif os.environ.get(dj_database_url.DEFAULT_ENV):
     DATABASE_ROUTERS = ["usaspending_api.routers.replicas.DefaultOnlyRouter"]
 else:
     raise EnvironmentError(
-        "Either {} or DB_SOURCE/DB_R1 environment variable must be defined".format(dj_database_url.DEFAULT_ENV)
+        f"Either {dj_database_url.DEFAULT_ENV} or DB_SOURCE/DB_R1 environment variable must be defined"
     )
+
 
 DOWNLOAD_DATABASE_URL = os.environ.get("DOWNLOAD_DATABASE_URL")
 
@@ -401,12 +402,6 @@ if DEBUG:
     LOGGING["loggers"]["django.db.backends"] = {"handlers": ["console"], "level": "DEBUG", "propagate": False}
 
 
-# If caches added or renamed, edit clear_caches in usaspending_api/etl/helpers.py
-CACHES = {
-    "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache", "LOCATION": "default-loc-mem-cache"},
-    "locations": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache", "LOCATION": "locations-loc-mem-cache"},
-}
-
 # Cache environment - 'local', 'disabled', or 'elasticache'
 CACHE_ENVIRONMENT = "disabled"
 
@@ -427,8 +422,17 @@ CACHE_ENVIRONMENTS = {
     "disabled": {"BACKEND": "django.core.cache.backends.dummy.DummyCache"},
 }
 
-# Set the usaspending-cache to whatever our environment cache dictates
-CACHES["usaspending-cache"] = CACHE_ENVIRONMENTS[CACHE_ENVIRONMENT]
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "default-loc-mem-cache",
+    },
+    "locations": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "locations-loc-mem-cache",
+    },
+    "usaspending-cache": CACHE_ENVIRONMENTS[CACHE_ENVIRONMENT],
+}
 
 # DRF extensions
 REST_FRAMEWORK_EXTENSIONS = {

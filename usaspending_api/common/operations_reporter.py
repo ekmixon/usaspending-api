@@ -39,7 +39,7 @@ class OpsReporter:
         return self.__repr__()
 
     def __repr__(self):
-        return "OpsReporter({})".format(", ".join(["{}:{}".format(k, v) for k, v in self._internal_dict.items()]))
+        return f'OpsReporter({", ".join([f"{k}:{v}" for k, v in self._internal_dict.items()])})'
 
     def json_dump(self):
         self._verify_required_keys()
@@ -50,6 +50,7 @@ class OpsReporter:
             json.dump(self._internal_dict, f)
 
     def _verify_required_keys(self):
-        missing_required_keys = set(self.required_keys) - set(self._internal_dict.keys())
-        if missing_required_keys:
-            raise Exception("Missing required keys: {}".format(missing_required_keys))
+        if missing_required_keys := set(self.required_keys) - set(
+            self._internal_dict.keys()
+        ):
+            raise Exception(f"Missing required keys: {missing_required_keys}")

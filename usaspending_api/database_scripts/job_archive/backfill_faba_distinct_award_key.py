@@ -101,7 +101,7 @@ with Timer() as overall_timer:
         print(f"Max ID: {max_id:,}", flush=True)
 
         with Timer() as chunk_timer:
-            for n, sql in enumerate(SQLS):
+            for sql in SQLS:
                 _min = min_id
                 while _min <= max_id:
                     _max = min(_min + CHUNK_SIZE - 1, max_id)

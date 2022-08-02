@@ -42,9 +42,7 @@ class ListBudgetSubfunctionViewSet(APIView):
             ~Q(budget_subfunction_code=""), ~Q(budget_subfunction_code=None)
         )
 
-        # Filter by Budget Function, if provided
-        budget_function = request.data.get("budget_function", None)
-        if budget_function:
+        if budget_function := request.data.get("budget_function", None):
             queryset = queryset.filter(budget_function_code=budget_function)
 
         # Group by code and title, order by code

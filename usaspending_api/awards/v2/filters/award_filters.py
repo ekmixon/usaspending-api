@@ -18,14 +18,12 @@ logger = logging.getLogger("console")
 def _get_award_id(filters):
     models = get_internal_or_generated_award_id_model()
     TinyShield([models]).block(filters)
-    award_id = filters["award_id"]
-    return award_id
+    return filters["award_id"]
 
 
 def awards_transaction_filter(filters):
     award_id = _get_award_id(filters)
-    queryset = TransactionNormalized.objects.filter(award_id=award_id)
-    return queryset
+    return TransactionNormalized.objects.filter(award_id=award_id)
 
 
 def awards_treasury_account_funding_filter(account_type, download_table, filters, account_level):

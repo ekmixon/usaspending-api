@@ -21,14 +21,9 @@ class FiscalYear:
         Create a filter object using date field, will return a Q object
         such that Q(date_field__gte=start_date) & Q(date_field__lte=end_date)
         """
-        date_start = {}
-        date_end = {}
-        date_start[date_field + "__gte"] = self.fy_start_date
-        date_end[date_field + "__lte"] = self.fy_end_date
-        if as_dict:
-            return {**date_start, **date_end}
-        else:
-            return Q(**date_start) & Q(**date_end)
+        date_start = {f"{date_field}__gte": self.fy_start_date}
+        date_end = {f"{date_field}__lte": self.fy_end_date}
+        return date_start | date_end if as_dict else Q(**date_start) & Q(**date_end)
 
 
 class FilterGenerator:
@@ -152,148 +147,138 @@ class FilterGenerator:
     def create_q_from_filter(self, filt):
         if "combine_method" in filt:
             return self.create_q_from_filter_list(filt["filters"], filt["combine_method"])
+        q_kwargs = {}
+        field = filt["field"]
+        negate = False
+        if filt["operation"][:4] == "not_":
+            negate = True
+            operation = FilterGenerator.operators[filt["operation"][4:]]
         else:
-            q_kwargs = {}
-            field = filt["field"]
-            negate = False
-            if "not_" == filt["operation"][:4]:
-                negate = True
-                operation = FilterGenerator.operators[filt["operation"][4:]]
-            else:
-                operation = FilterGenerator.operators[filt["operation"]]
-            value = filt["value"]
+            operation = FilterGenerator.operators[filt["operation"]]
+        value = filt["value"]
 
-            value_format = None
-            if "value_format" in filt:
-                value_format = filt["value_format"]
-
+        value_format = filt["value_format"] if "value_format" in filt else None
             # Special multi-field case for full-text search
-            if isinstance(field, list) and operation == "__search":
-                # We create the search vector and attach it to this object
-                sv = SearchVector(*field)
-                self.search_vectors.append(sv)
-                # Our Q object is simpler now
-                q_kwargs["search"] = value
+        if isinstance(field, list) and operation == "__search":
+            # We create the search vector and attach it to this object
+            sv = SearchVector(*field)
+            self.search_vectors.append(sv)
+            # Our Q object is simpler now
+            q_kwargs["search"] = value
                 # Return our Q and skip the rest
-                if negate:
-                    return ~Q(**q_kwargs)
-                return Q(**q_kwargs)
-
+            return ~Q(**q_kwargs) if negate else Q(**q_kwargs)
             # Handle special operations
-            if operation == "fy":
+        if operation == "fy":
+            fy = FiscalYear(value)
+            return ~fy.get_filter_object(field) if negate else fy.get_filter_object(field)
+        if operation == "range_intersect":
+            # If we have a value_format and it is fy, convert it to the
+            # date range for that fiscal year
+            if value_format and value_format == "fy":
                 fy = FiscalYear(value)
-                if negate:
-                    return ~fy.get_filter_object(field)
-                return fy.get_filter_object(field)
-            if operation == "range_intersect":
-                # If we have a value_format and it is fy, convert it to the
-                # date range for that fiscal year
-                if value_format and value_format == "fy":
-                    fy = FiscalYear(value)
-                    value = [fy.fy_start_date, fy.fy_end_date]
-                if negate:
-                    return ~self.range_intersect(field, value)
-                return self.range_intersect(field, value)
-            if operation == "in":
-                # make in operation case insensitive for string fields
-                if self.is_string_field(field):
-                    q_obj = Q()
-                    for item in value:
-                        new_q = {}
-                        new_q[field + "__iexact"] = item
-                        new_q = Q(**new_q)
-                        q_obj = q_obj | new_q
-                    if negate:
-                        q_obj = ~q_obj
-                    return q_obj
-                else:
-                    # Otherwise, use built in django in
-                    operation = "__in"
-            if operation == "__icontains" and isinstance(value, list):
-                # In cases where we have a list of contains (e.g. ArrayField searches)
-                # we need to not do this case insensitive, as ArrayField's don't have
-                # icontains implemented like contains
-                operation = "__contains"
-            if operation == "" and self.is_string_field(field):
-                # If we're doing a simple comparison, we need to use iexact for
-                # string fields
-                operation = "__iexact"
-
-            # We don't have a special operation, so handle the remaining cases
-            # It's unlikely anyone would specify and ignored parameter via post
-            if field in self.ignored_parameters:
-                return Q()
-            if field in self.filter_map:
-                field = self.filter_map[field]
-
-            q_kwargs[field + operation] = value
-
+                value = [fy.fy_start_date, fy.fy_end_date]
             if negate:
-                return ~Q(**q_kwargs)
-            return Q(**q_kwargs)
+                return ~self.range_intersect(field, value)
+            return self.range_intersect(field, value)
+        if operation == "in":
+                # make in operation case insensitive for string fields
+            if self.is_string_field(field):
+                q_obj = Q()
+                for item in value:
+                    new_q = {f"{field}__iexact": item}
+                    new_q = Q(**new_q)
+                    q_obj = q_obj | new_q
+                if negate:
+                    q_obj = ~q_obj
+                return q_obj
+            else:
+                # Otherwise, use built in django in
+                operation = "__in"
+        if operation == "__icontains" and isinstance(value, list):
+            # In cases where we have a list of contains (e.g. ArrayField searches)
+            # we need to not do this case insensitive, as ArrayField's don't have
+            # icontains implemented like contains
+            operation = "__contains"
+        if operation == "" and self.is_string_field(field):
+            # If we're doing a simple comparison, we need to use iexact for
+            # string fields
+            operation = "__iexact"
+
+        # We don't have a special operation, so handle the remaining cases
+        # It's unlikely anyone would specify and ignored parameter via post
+        if field in self.ignored_parameters:
+            return Q()
+        if field in self.filter_map:
+            field = self.filter_map[field]
+
+        q_kwargs[field + operation] = value
+
+        return ~Q(**q_kwargs) if negate else Q(**q_kwargs)
 
     def validate_post_request(self, request):
-        if "filters" in request:
-            for filt in request["filters"]:
-                if "combine_method" in filt:
-                    try:
-                        self.validate_post_request(filt)
-                    except Exception:
-                        raise
-                else:
-                    if "field" in filt and "operation" in filt and "value" in filt:
-                        if (
-                            filt["operation"] not in FilterGenerator.operators
-                            and filt["operation"][:4] != "not_"
-                            and filt["operation"][4:] not in FilterGenerator.operators
-                        ):
-                            raise InvalidParameterException("Invalid operation: " + filt["operation"])
-                        if filt["operation"] == "in":
-                            if not isinstance(filt["value"], list):
-                                raise InvalidParameterException("Invalid value, operation 'in' requires an array value")
-                        if filt["operation"] == "range":
-                            if not isinstance(filt["value"], list) or len(filt["value"]) != 2:
-                                raise InvalidParameterException(
-                                    "Invalid value, operation 'range' requires an array value of length 2"
-                                )
-                        if filt["operation"] == "range_intersect":
-                            if not isinstance(filt["field"], list) or len(filt["field"]) != 2:
-                                raise InvalidParameterException(
-                                    "Invalid field, operation 'range_intersect' "
-                                    "requires an array of length 2 for field"
-                                )
-                            if (
-                                not isinstance(filt["value"], list) or len(filt["value"]) != 2
-                            ) and "value_format" not in filt:
-                                raise InvalidParameterException(
-                                    "Invalid value, operation 'range_intersect' requires "
-                                    "an array value of length 2, or a single value with "
-                                    "value_format set to a ranged format (such as fy)"
-                                )
-                        if filt["operation"] in ["overlap", "contained_by"] and not isinstance(filt["value"], list):
-                            raise InvalidParameterException(
-                                "Invalid value. When using operation {}, value must be an "
-                                "array of strings.".format(filt["operation"])
-                            )
-                        if filt["operation"] == "search":
-                            if not isinstance(filt["field"], list) and not self.is_string_field(filt["field"]):
+        if "filters" not in request:
+            return
+        for filt in request["filters"]:
+            if "combine_method" in filt:
+                try:
+                    self.validate_post_request(filt)
+                except Exception:
+                    raise
+            elif "field" in filt and "operation" in filt and "value" in filt:
+                if (
+                    filt["operation"] not in FilterGenerator.operators
+                    and filt["operation"][:4] != "not_"
+                    and filt["operation"][4:] not in FilterGenerator.operators
+                ):
+                    raise InvalidParameterException("Invalid operation: " + filt["operation"])
+                if filt["operation"] == "in" and not isinstance(
+                    filt["value"], list
+                ):
+                    raise InvalidParameterException("Invalid value, operation 'in' requires an array value")
+                if filt["operation"] == "range" and (
+                    not isinstance(filt["value"], list) or len(filt["value"]) != 2
+                ):
+                    raise InvalidParameterException(
+                        "Invalid value, operation 'range' requires an array value of length 2"
+                    )
+                if filt["operation"] == "range_intersect":
+                    if not isinstance(filt["field"], list) or len(filt["field"]) != 2:
+                        raise InvalidParameterException(
+                            "Invalid field, operation 'range_intersect' "
+                            "requires an array of length 2 for field"
+                        )
+                    if (
+                        not isinstance(filt["value"], list) or len(filt["value"]) != 2
+                    ) and "value_format" not in filt:
+                        raise InvalidParameterException(
+                            "Invalid value, operation 'range_intersect' requires "
+                            "an array value of length 2, or a single value with "
+                            "value_format set to a ranged format (such as fy)"
+                        )
+                if filt["operation"] in ["overlap", "contained_by"] and not isinstance(filt["value"], list):
+                    raise InvalidParameterException(
+                        f'Invalid value. When using operation {filt["operation"]}, value must be an array of strings.'
+                    )
+
+                if filt["operation"] == "search":
+                    if not isinstance(filt["field"], list) and not self.is_string_field(filt["field"]):
+                        raise InvalidParameterException(
+                            "Invalid field: '"
+                            + filt["field"]
+                            + "', operation 'search' requires a text-field for "
+                            "searching"
+                        )
+                    elif isinstance(filt["field"], list):
+                        for search_field in filt["field"]:
+                            if not self.is_string_field(search_field):
                                 raise InvalidParameterException(
                                     "Invalid field: '"
-                                    + filt["field"]
-                                    + "', operation 'search' requires a text-field for "
-                                    "searching"
+                                    + search_field
+                                    + "', operation 'search' requires a text-field "
+                                    "for searching"
                                 )
-                            elif isinstance(filt["field"], list):
-                                for search_field in filt["field"]:
-                                    if not self.is_string_field(search_field):
-                                        raise InvalidParameterException(
-                                            "Invalid field: '"
-                                            + search_field
-                                            + "', operation 'search' requires a text-field "
-                                            "for searching"
-                                        )
-                    else:
-                        raise InvalidParameterException("Malformed filter - missing field, operation, or value")
+            else:
+                raise InvalidParameterException("Malformed filter - missing field, operation, or value")
 
     # Special operation functions follow
 
@@ -315,9 +300,7 @@ class FilterGenerator:
         """
 
         # Create the Q filter case
-        q_case = {}
-        q_case[fields[0] + "__lte"] = values[1]  # f1 <= r2
-        q_case[fields[1] + "__gte"] = values[0]  # f2 >= r1
+        q_case = {f"{fields[0]}__lte": values[1], f"{fields[1]}__gte": values[0]}
         return Q(**q_case)
 
     def is_string_field(self, field):
@@ -329,32 +312,31 @@ class FilterGenerator:
         if len(fields) > 1:
             while len(fields) > 1:
                 mf = model_to_check._meta.get_field(fields.pop(0))
-                # Check if this field is a foreign key
-                if mf.get_internal_type() in ["ForeignKey", "ManyToManyField", "OneToOneField"]:
-                    # Continue traversal
-                    related = getattr(mf, "remote_field", None)
-                    if related:
-                        model_to_check = related.model
-                    else:
-                        model_to_check = mf.related_model
-                else:
+                if mf.get_internal_type() not in [
+                    "ForeignKey",
+                    "ManyToManyField",
+                    "OneToOneField",
+                ]:
                     # We've hit something that ISN'T a related field, which means it is either
                     # a lookup, or a field with '__' in the name. In either case, we can return
                     # false here
                     return False
+                if related := getattr(mf, "remote_field", None):
+                    model_to_check = related.model
+                else:
+                    model_to_check = mf.related_model
         return model_to_check._meta.get_field(fields[0]).get_internal_type() in ["TextField", "CharField"]
 
 
 # Handles autocomplete requests
 class AutoCompleteHandler:
     @staticmethod
-    # Data set to be searched for the value, and which ids to match
     def get_values_and_counts(data_set, filter_matched_ids, pk_name):
         value_dict = {}
         count_dict = {}
 
         for field in filter_matched_ids.keys():
-            q_args = {pk_name + "__in": filter_matched_ids[field]}
+            q_args = {f"{pk_name}__in": filter_matched_ids[field]}
             # Why this weirdness? To ensure we eliminate duplicates
             value_dict[field] = list(set(data_set.all().filter(Q(**q_args)).values_list(field, flat=True)))
             count_dict[field] = len(value_dict[field])
@@ -375,8 +357,7 @@ class AutoCompleteHandler:
         filter_matched_ids = {}
         pk_name = data_set.model._meta.pk.name
         for field in fields:
-            q_args = {}
-            q_args[field + mode] = value
+            q_args = {field + mode: value}
             filter_matched_ids[field] = data_set.all().filter(Q(**q_args))[:limit].values_list(pk_name, flat=True)
 
         return filter_matched_ids, pk_name
@@ -386,8 +367,7 @@ class AutoCompleteHandler:
         matched_objects = {}
 
         for field in filter_matched_ids.keys():
-            q_args = {}
-            q_args[pk_name + "__in"] = filter_matched_ids[field]
+            q_args = {f"{pk_name}__in": filter_matched_ids[field]}
             matched_object_qs = data_set.all().filter(Q(**q_args))
             matched_objects[field] = serializer(matched_object_qs, many=True).data
 
@@ -401,9 +381,12 @@ class AutoCompleteHandler:
             raise
 
         # If the serializer supports eager loading, set it up
-        if serializer:
-            if hasattr(serializer, "setup_eager_loading") and callable(serializer.setup_eager_loading):
-                data_set = serializer.setup_eager_loading(data_set)
+        if (
+            serializer
+            and hasattr(serializer, "setup_eager_loading")
+            and callable(serializer.setup_eager_loading)
+        ):
+            data_set = serializer.setup_eager_loading(data_set)
 
         return_object = {}
 
@@ -424,15 +407,13 @@ class AutoCompleteHandler:
 
     @staticmethod
     def validate(body):
-        if "fields" in body and "value" in body:
-            if not isinstance(body["fields"], list):
-                raise InvalidParameterException("Invalid field, autocomplete fields value must be a list")
-        else:
+        if "fields" not in body or "value" not in body:
             raise InvalidParameterException(
                 "Invalid request, autocomplete requests need parameters 'fields' and 'value'"
             )
-        if "mode" in body:
-            if body["mode"] not in ["contains", "startswith"]:
-                raise InvalidParameterException(
-                    "Invalid mode, autocomplete modes are 'contains', 'startswith', but got " + body["mode"]
-                )
+        if not isinstance(body["fields"], list):
+            raise InvalidParameterException("Invalid field, autocomplete fields value must be a list")
+        if "mode" in body and body["mode"] not in ["contains", "startswith"]:
+            raise InvalidParameterException(
+                "Invalid mode, autocomplete modes are 'contains', 'startswith', but got " + body["mode"]
+            )

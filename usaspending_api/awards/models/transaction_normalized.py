@@ -119,7 +119,7 @@ class TransactionNormalized(models.Model):
     business_categories = ArrayField(models.TextField(), default=list)
 
     def __str__(self):
-        return "%s award: %s" % (self.type_description, self.award)
+        return f"{self.type_description} award: {self.award}"
 
     def newer_than(self, dct):
         """Compares age of this instance to a Python dictionary
@@ -131,10 +131,7 @@ class TransactionNormalized(models.Model):
 
         my_date = self.last_modified_date
         their_date = dct.get("last_modified_date")
-        if my_date and their_date:
-            return my_date > their_date
-        else:
-            return False
+        return my_date > their_date if my_date and their_date else False
 
     @classmethod
     def get_or_create_transaction(cls, **kwargs):
@@ -142,12 +139,14 @@ class TransactionNormalized(models.Model):
 
         Transactions must be unique on Award, Awarding Agency, and Mod Number
         """
-        transaction = (
-            cls.objects.filter(award=kwargs.get("award"), modification_number=kwargs.get("modification_number"))
+        if transaction := (
+            cls.objects.filter(
+                award=kwargs.get("award"),
+                modification_number=kwargs.get("modification_number"),
+            )
             .order_by("-update_date")
             .first()
-        )
-        if transaction:
+        ):
             if not transaction.newer_than(kwargs):
                 for (k, v) in kwargs.items():
 

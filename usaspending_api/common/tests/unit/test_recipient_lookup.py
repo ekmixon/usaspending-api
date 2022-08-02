@@ -29,8 +29,7 @@ def test_child_recipient_without_name_or_id(recipient_lookup):
         "recipient_unique_id": None,
         "parent_recipient_unique_id": "123",
     }
-    expected_result = None
-    assert obtain_recipient_uri(**child_recipient_parameters) == expected_result
+    assert obtain_recipient_uri(**child_recipient_parameters) is None
 
 
 @pytest.mark.django_db
@@ -75,8 +74,7 @@ def test_parent_recipient_without_name_or_id(recipient_lookup):
         "parent_recipient_unique_id": None,
         "is_parent_recipient": True,
     }
-    expected_result = None
-    assert obtain_recipient_uri(**child_recipient_parameters) == expected_result
+    assert obtain_recipient_uri(**child_recipient_parameters) is None
 
 
 @pytest.mark.django_db

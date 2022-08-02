@@ -29,8 +29,12 @@ class BudgetFunctionCount(AgencyBase):
             {
                 "toptier_code": self.toptier_code,
                 "fiscal_year": self.fiscal_year,
-                "budget_function_count": len(set([row["budget_function_code"] for row in rows])),
-                "budget_sub_function_count": len(set([row["budget_subfunction_code"] for row in rows])),
+                "budget_function_count": len(
+                    {row["budget_function_code"] for row in rows}
+                ),
+                "budget_sub_function_count": len(
+                    {row["budget_subfunction_code"] for row in rows}
+                ),
                 "messages": self.standard_response_messages,
             }
         )

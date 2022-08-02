@@ -226,7 +226,7 @@ class Award(DataSourceTrackedModel):
     nonempty = AwardManager()
 
     def __str__(self):
-        return "%s piid: %s fain: %s uri: %s" % (self.type_description, self.piid, self.fain, self.uri)
+        return f"{self.type_description} piid: {self.piid} fain: {self.fain} uri: {self.uri}"
 
     @staticmethod
     def get_or_create_summary_award(
@@ -252,7 +252,7 @@ class Award(DataSourceTrackedModel):
             # uses either uri (record_type=1) or fain (record_type=2 or 3).
             lookup_value = (piid, "piid")
             if record_type:
-                if str(record_type) in ("2", "3"):
+                if str(record_type) in {"2", "3"}:
                     lookup_value = (fain, "fain")
                 else:
                     lookup_value = (uri, "uri")
@@ -288,13 +288,9 @@ class Award(DataSourceTrackedModel):
 
             return [summary_award], summary_award
 
-        # Do not use bare except
         except ValueError:
             raise ValueError(
-                "Unable to find or create an award with the provided information: piid={}, fain={}, uri={}, "
-                "parent_award_piid={}, awarding_agency={}, generated_unique_award_id={}".format(
-                    piid, fain, uri, parent_award_piid, awarding_agency, generated_unique_award_id
-                )
+                f"Unable to find or create an award with the provided information: piid={piid}, fain={fain}, uri={uri}, parent_award_piid={parent_award_piid}, awarding_agency={awarding_agency}, generated_unique_award_id={generated_unique_award_id}"
             )
 
     class Meta:

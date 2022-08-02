@@ -54,28 +54,25 @@ class AwardRetrieveViewSet(APIView):
                 "optional": False,
             }
         ]
-        if str(provided_award_id).isdigit():
+        if provided_award_id.isdigit():
             request_dict = {"id": int(provided_award_id)}
             models = [{"key": "id", "name": "id", "type": "integer", "optional": False}]
 
-        validated_request_data = TinyShield(models).block(request_dict)
-        return validated_request_data
+        return TinyShield(models).block(request_dict)
 
     def _business_logic(self, request_dict: dict) -> dict:
         try:
             award = Award.objects.get(**request_dict)
         except Award.DoesNotExist:
-            logger.info("No Award found with: '{}'".format(request_dict))
-            raise NotFound("No Award found with: '{}'".format(request_dict))
+            logger.info(f"No Award found with: '{request_dict}'")
+            raise NotFound(f"No Award found with: '{request_dict}'")
 
         if award.category == "contract":
-            response_content = construct_contract_response(request_dict)
+            return construct_contract_response(request_dict)
         elif award.category == "idv":
-            response_content = construct_idv_response(request_dict)
+            return construct_idv_response(request_dict)
         else:
-            response_content = construct_assistance_response(request_dict)
-
-        return response_content
+            return construct_assistance_response(request_dict)
 
     @cache_response()
     def get(self, request: Request, requested_award: str) -> Response:

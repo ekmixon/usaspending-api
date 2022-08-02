@@ -25,24 +25,26 @@ SUPPORTED_TEXT_TYPES = ["search", "raw", "sql", "url", "password"]
 
 def _check_max(rule):
     value = rule["value"]
-    if rule["type"] in ("integer", "float"):
-        if value > rule["max"]:
-            raise UnprocessableEntityException(ABOVE_MAXIMUM_MSG.format(**rule))
+    if rule["type"] in ("integer", "float") and value > rule["max"]:
+        raise UnprocessableEntityException(ABOVE_MAXIMUM_MSG.format(**rule))
 
-    if rule["type"] in ("text", "enum", "array", "object"):
-        if len(value) > rule["max"]:
-            raise UnprocessableEntityException(ABOVE_MAXIMUM_MSG.format(**rule) + " items")
+    if (
+        rule["type"] in ("text", "enum", "array", "object")
+        and len(value) > rule["max"]
+    ):
+        raise UnprocessableEntityException(f"{ABOVE_MAXIMUM_MSG.format(**rule)} items")
 
 
 def _check_min(rule):
     value = rule["value"]
-    if rule["type"] in ("integer", "float"):
-        if value < rule["min"]:
-            raise UnprocessableEntityException(BELOW_MINIMUM_MSG.format(**rule))
+    if rule["type"] in ("integer", "float") and value < rule["min"]:
+        raise UnprocessableEntityException(BELOW_MINIMUM_MSG.format(**rule))
 
-    if rule["type"] in ("text", "enum", "array", "object"):
-        if len(value) < rule["min"]:
-            raise UnprocessableEntityException(BELOW_MINIMUM_MSG.format(**rule) + " items")
+    if (
+        rule["type"] in ("text", "enum", "array", "object")
+        and len(value) < rule["min"]
+    ):
+        raise UnprocessableEntityException(f"{BELOW_MINIMUM_MSG.format(**rule)} items")
 
 
 def _check_datetime_min_max(rule, value, dt_format):
@@ -99,12 +101,12 @@ def validate_array(rule):
 
 def validate_boolean(rule):
     # Could restrict this to ONLY True or False. Some tools like to use 0/1 or t/f so this function is inclusive
-    if str(rule["value"]).lower() in ("1", "t", "true"):
+    if str(rule["value"]).lower() in {"1", "t", "true"}:
         return True
-    elif str(rule["value"]).lower() in ("0", "f", "false"):
+    elif str(rule["value"]).lower() in {"0", "f", "false"}:
         return False
     else:
-        msg = INVALID_TYPE_MSG.format(**rule) + ". Use true/false"
+        msg = f"{INVALID_TYPE_MSG.format(**rule)}. Use true/false"
         raise InvalidParameterException(msg)
 
 
@@ -120,7 +122,11 @@ def validate_datetime(rule):
     try:
         value = datetime.datetime.strptime(val, dt_format)
     except ValueError:
-        error_message = INVALID_TYPE_MSG.format(**rule) + ". Expected format: ({})".format(dt_format)
+        error_message = (
+            INVALID_TYPE_MSG.format(**rule)
+            + f". Expected format: ({dt_format})"
+        )
+
         raise InvalidParameterException(error_message)
 
     _check_datetime_min_max(rule, value, dt_format)
@@ -128,13 +134,14 @@ def validate_datetime(rule):
     # Future TODO: change this to returning the appropriate object (Date or Datetime) instead of converting to string
     if rule["type"] == "date":
         return value.date().isoformat()
-    return value.isoformat() + "Z"  # adding in "zulu" timezone to keep the datetime UTC. Can switch to "+0000"
+    return f"{value.isoformat()}Z"
 
 
 def validate_enum(rule):
     value = rule["value"]
     if value not in rule["enum_values"]:
-        error_message = "Field '{}' is outside valid values {}".format(rule["key"], list(rule["enum_values"]))
+        error_message = f"""Field '{rule["key"]}' is outside valid values {list(rule["enum_values"])}"""
+
         raise InvalidParameterException(error_message)
     return value
 
@@ -170,19 +177,25 @@ def validate_object(rule):
         raise InvalidParameterException(INVALID_TYPE_MSG.format(**rule))
 
     if not provided_object:
-        raise InvalidParameterException("'{}' is empty. Please populate object".format(rule["key"]))
+        raise InvalidParameterException(
+            f"""'{rule["key"]}' is empty. Please populate object"""
+        )
+
 
     for field in provided_object.keys():
         if field not in rule["object_keys"].keys():
-            raise InvalidParameterException("Unexpected field '{}' in parameter {}".format(field, rule["key"]))
+            raise InvalidParameterException(
+                f"""Unexpected field '{field}' in parameter {rule["key"]}"""
+            )
+
 
     for key, value in rule["object_keys"].items():
-        if key not in provided_object:
-            if "optional" in value and value["optional"] is False:
-                raise UnprocessableEntityException(f"Required object fields: {list(rule['object_keys'].keys())}")
-            else:
-                continue
-
+        if (
+            key not in provided_object
+            and "optional" in value
+            and value["optional"] is False
+        ):
+            raise UnprocessableEntityException(f"Required object fields: {list(rule['object_keys'].keys())}")
     return provided_object
 
 
@@ -204,11 +217,11 @@ def validate_text(rule):
     text_type = rule["text_type"]
     if text_type not in SUPPORTED_TEXT_TYPES:
         msg = "Invalid model {key}: '{text_type}' is not a valid text_type".format(**rule)
-        raise Exception(msg + " Possible types: {}".format(SUPPORTED_TEXT_TYPES))
+        raise Exception(msg + f" Possible types: {SUPPORTED_TEXT_TYPES}")
     if text_type in ("raw", "sql", "password"):
         # TODO: flesh out expectations and constraints for sql and password types
         if text_type in ("sql", "password"):
-            logger.warning("Caution: text_type '{}' not yet fully implemented".format(text_type))
+            logger.warning(f"Caution: text_type '{text_type}' not yet fully implemented")
         val = rule["value"]
     elif text_type == "url":
         val = urllib.parse.quote_plus(rule["value"])
@@ -219,6 +232,7 @@ def validate_text(rule):
         val = rule["value"].translate(search_remap).strip()
         if val != rule["value"]:
             logger.warning(
-                "Field {} value was changed from {} to {}".format(rule["key"], repr(rule["value"]), repr(val))
+                f'Field {rule["key"]} value was changed from {repr(rule["value"])} to {repr(val)}'
             )
+
     return val

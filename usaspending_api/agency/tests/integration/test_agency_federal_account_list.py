@@ -143,7 +143,7 @@ def test_federal_account_list_too_early(client, agency_account_data):
 
 @pytest.mark.django_db
 def test_federal_account_list_future(client, agency_account_data):
-    query_params = "?fiscal_year=" + str(current_fiscal_year() + 1)
+    query_params = f"?fiscal_year={str(current_fiscal_year() + 1)}"
     resp = client.get(url.format(code="007", query_params=query_params))
     assert resp.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 

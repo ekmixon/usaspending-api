@@ -10,10 +10,17 @@ def check_autocomplete(route, client, fields, value, expected):
     """
     for match_objs in (0, 1):
         resp = client.post(
-            "/api/v1/{}/autocomplete/".format(route),
+            f"/api/v1/{route}/autocomplete/",
             content_type="application/json",
-            data=json.dumps({"fields": fields, "value": value, "matched_objects": match_objs}),
+            data=json.dumps(
+                {
+                    "fields": fields,
+                    "value": value,
+                    "matched_objects": match_objs,
+                }
+            ),
         )
+
         assert resp.status_code == status.HTTP_200_OK
 
         # TODO: make this a truly v2 endpoint or change frontend to accept 'matched_awards' as top level key

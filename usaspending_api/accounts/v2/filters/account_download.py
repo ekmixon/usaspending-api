@@ -75,10 +75,12 @@ def account_download_filter(account_type, download_table, filters, account_level
     if filters.get("budget_subfunction") and filters["budget_subfunction"] != "all":
         query_filters[f"{tas_id}__budget_subfunction_code"] = filters["budget_subfunction"]
 
-    if account_type != "account_balances":  # file A does not have DEFC field so we do not attempt to filter
-        if len(filters.get("def_codes") or []) > 0:
-            # joining to disaster_emergency_fund_code table for observed performance benefits
-            query_filters["disaster_emergency_fund__code__in"] = filters["def_codes"]
+    if (
+        account_type != "account_balances"
+        and len(filters.get("def_codes") or []) > 0
+    ):
+        # joining to disaster_emergency_fund_code table for observed performance benefits
+        query_filters["disaster_emergency_fund__code__in"] = filters["def_codes"]
 
     submission_filter = get_submission_filter(account_type, filters)
 
@@ -115,35 +117,33 @@ def get_submission_filter(account_type, filters):
     filter_quarter = int(filters.get("quarter") or -1)
     filter_month = int(filters.get("period") or -1)
 
-    submission_ids = get_submission_ids_for_periods(filter_year, filter_quarter, filter_month)
-    if submission_ids:
+    if submission_ids := get_submission_ids_for_periods(
+        filter_year, filter_quarter, filter_month
+    ):
         submission_id_filter = Q(submission_id__in=submission_ids)
     else:
         submission_id_filter = Q(submission_id__isnull=True)
 
     if account_type in ["account_balances", "object_class_program_activity"]:
-        submission_filter = submission_id_filter
+        return submission_id_filter
 
-    else:
-        # For File C, we want:
-        #   - outlays in the most recent agency submission period matching the filter criteria
-        #   - obligations in any period matching the filter criteria or earlier
-        # Specific filtering to limit outlays to most recent submission period can be found
-        # with the outlay related fields
-        submission_date_filter = Q(
-            Q(
-                Q(Q(submission__reporting_fiscal_period__lte=filter_month) & Q(submission__quarter_format_flag=False))
-                | Q(
-                    Q(submission__reporting_fiscal_quarter__lte=filter_quarter)
-                    & Q(submission__quarter_format_flag=True)
-                )
+    # For File C, we want:
+    #   - outlays in the most recent agency submission period matching the filter criteria
+    #   - obligations in any period matching the filter criteria or earlier
+    # Specific filtering to limit outlays to most recent submission period can be found
+    # with the outlay related fields
+    submission_date_filter = Q(
+        Q(
+            Q(Q(submission__reporting_fiscal_period__lte=filter_month) & Q(submission__quarter_format_flag=False))
+            | Q(
+                Q(submission__reporting_fiscal_quarter__lte=filter_quarter)
+                & Q(submission__quarter_format_flag=True)
             )
-            & Q(submission__reporting_fiscal_year=filter_year)
         )
+        & Q(submission__reporting_fiscal_year=filter_year)
+    )
 
-        submission_filter = submission_id_filter | submission_date_filter
-
-    return submission_filter
+    return submission_id_filter | submission_date_filter
 
 
 def get_nonzero_filter():
@@ -160,22 +160,23 @@ def get_nonzero_filter():
 
 
 def _generate_closed_period_for_derived_field(filters, column_name):
-    filter_year = filters.get("fy")
-
-    if filter_year:
+    if filter_year := filters.get("fy"):
         selected_period = ClosedPeriod(filter_year, filters.get("quarter"), filters.get("period"))
-        if selected_period.is_final:
-            q = selected_period.build_period_q("submission")
-        else:
-            q = selected_period.build_submission_id_q("submission")
-
-        submission_filter = Case(
-            When(q, then=F(column_name)), default=Cast(Value(None), DecimalField(max_digits=23, decimal_places=2))
+        q = (
+            selected_period.build_period_q("submission")
+            if selected_period.is_final
+            else selected_period.build_submission_id_q("submission")
         )
-    else:
-        submission_filter = Cast(Value(None), DecimalField(max_digits=23, decimal_places=2))
 
-    return submission_filter
+        return Case(
+            When(q, then=F(column_name)),
+            default=Cast(
+                Value(None), DecimalField(max_digits=23, decimal_places=2)
+            ),
+        )
+
+    else:
+        return Cast(Value(None), DecimalField(max_digits=23, decimal_places=2))
 
 
 def generate_ussgl487200_derived_field(filters):
@@ -206,19 +207,18 @@ def generate_treasury_account_query(queryset, account_type, filters):
         "gross_outlay_amount_fyb_to_period_end": generate_gross_outlay_amount_derived_field(filters, account_type),
     }
 
-    lmd = "last_modified_date" + NAMING_CONFLICT_DISCRIMINATOR
+    lmd = f"last_modified_date{NAMING_CONFLICT_DISCRIMINATOR}"
 
     if account_type != "account_balances":
-        derived_fields.update(
-            {
-                "downward_adj_prior_yr_ppaid_undeliv_orders_oblig_refunds_cpe": generate_ussgl487200_derived_field(
-                    filters
-                ),
-                "downward_adj_prior_yr_paid_delivered_orders_oblig_refunds_cpe": generate_ussgl497200_derived_field(
-                    filters
-                ),
-            }
-        )
+        derived_fields |= {
+            "downward_adj_prior_yr_ppaid_undeliv_orders_oblig_refunds_cpe": generate_ussgl487200_derived_field(
+                filters
+            ),
+            "downward_adj_prior_yr_paid_delivered_orders_oblig_refunds_cpe": generate_ussgl497200_derived_field(
+                filters
+            ),
+        }
+
 
     if account_type == "award_financial":
         # Separating out last_modified_date like this prevents unnecessary grouping in the full File
@@ -245,16 +245,15 @@ def generate_federal_account_query(queryset, account_type, tas_id, filters):
     }
 
     if account_type != "account_balances":
-        derived_fields.update(
-            {
-                "downward_adj_prior_yr_ppaid_undeliv_orders_oblig_refunds_cpe": Sum(
-                    generate_ussgl487200_derived_field(filters)
-                ),
-                "downward_adj_prior_yr_paid_delivered_orders_oblig_refunds_cpe": Sum(
-                    generate_ussgl497200_derived_field(filters)
-                ),
-            }
-        )
+        derived_fields |= {
+            "downward_adj_prior_yr_ppaid_undeliv_orders_oblig_refunds_cpe": Sum(
+                generate_ussgl487200_derived_field(filters)
+            ),
+            "downward_adj_prior_yr_paid_delivered_orders_oblig_refunds_cpe": Sum(
+                generate_ussgl497200_derived_field(filters)
+            ),
+        }
+
     if account_type == "award_financial":
         derived_fields = award_financial_derivations(derived_fields)
 

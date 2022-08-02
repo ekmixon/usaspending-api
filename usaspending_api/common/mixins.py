@@ -14,14 +14,9 @@ class AggregateQuerysetMixin(object):
 
     def aggregate(self, request, *args, **kwargs):
         """Perform an aggregate function on a Django queryset with an optional group by field."""
-        # create a single dict that contains the requested aggregate parameters, regardless of request type
-        # (e.g., GET, POST) (not sure if this is a good practice, or we should be more prescriptive that aggregate
-        # requests can only be of one type)
-        params = dict(request.query_params)
-        params.update(dict(request.data))
-
+        params = dict(request.query_params) | request.data
         # get the queryset to be aggregated
-        queryset = kwargs.get("queryset", None)
+        queryset = kwargs.get("queryset")
 
         # validate request parameters
         agg_field, group_fields, date_part = self.validate_request(params, queryset)
@@ -30,12 +25,12 @@ class AggregateQuerysetMixin(object):
         if not params.get("show_null_groups", False) and not params.get("show_nulls", False):
             q_object = Q()
             for field in group_fields:
-                q_object = q_object | Q(**{"{}__isnull".format(field): False})
+                q_object = q_object | Q(**{f"{field}__isnull": False})
             queryset = queryset.filter(q_object)
 
         # Check for null opt-in, and filter instances where the aggregate field is null
         if not params.get("show_null_aggregates", False) and not params.get("show_nulls", False):
-            q_object = Q(**{"{}__isnull".format(agg_field): False})
+            q_object = Q(**{f"{agg_field}__isnull": False})
             queryset = queryset.filter(q_object)
 
         # get the aggregate function to use (default is Sum)
@@ -47,11 +42,12 @@ class AggregateQuerysetMixin(object):
             # group queryset by a date field and aggregate
             group_func_map = {"year": ExtractYear, "month": ExtractMonth, "day": ExtractDay}
             group_func = group_func_map.get(date_part)
-            aggregate = (
+            return (
                 queryset.annotate(item=group_func(group_fields[0]))
                 .values("item")
                 .annotate(aggregate=agg_function(agg_field))
             )
+
         else:
             # item is deprecated and should be removed soon group queryset by a non-date field and aggregate
 
@@ -64,11 +60,11 @@ class AggregateQuerysetMixin(object):
                 if isinstance(expr, ExpressionWrapper):
                     item_annotations[gf] = expr
             group_fields.append("item")
-            aggregate = (
-                queryset.annotate(**item_annotations).values(*group_fields).annotate(aggregate=agg_function(agg_field))
+            return (
+                queryset.annotate(**item_annotations)
+                .values(*group_fields)
+                .annotate(aggregate=agg_function(agg_field))
             )
-
-        return aggregate
 
     _sql_function_transformations = {"fy": IntegerField}
 
@@ -78,7 +74,7 @@ class AggregateQuerysetMixin(object):
         Assumes that there's an SQL function defined for each registered lookup.
         """
         for suffix in self._sql_function_transformations:
-            full_suffix = "__" + suffix
+            full_suffix = f"__{suffix}"
             if col_name.endswith(full_suffix):
                 col_name = col_name[: -(len(full_suffix))]
                 result = Func(F(col_name), function=suffix)
@@ -102,9 +98,9 @@ class AggregateQuerysetMixin(object):
         # make sure the field we're aggregating exists in the model
         if hasattr(model, agg_field) is False:
             raise InvalidParameterException(
-                "Field {} not found in model {}. "
-                "Please specify a valid field in the request.".format(agg_field, model)
+                f"Field {agg_field} not found in model {model}. Please specify a valid field in the request."
             )
+
 
         # make sure the field we're aggregating on is numeric
         # (there is likely a better way to do this?)
@@ -120,8 +116,9 @@ class AggregateQuerysetMixin(object):
         ]
         if model._meta.get_field(agg_field).get_internal_type() not in numeric_fields:
             raise InvalidParameterException(
-                "Aggregate field {} is not a numeric type (e.g., integer, decimal)".format(agg_field)
+                f"Aggregate field {agg_field} is not a numeric type (e.g., integer, decimal)"
             )
+
 
         # field to group by is required
         if group_fields is None:
@@ -142,15 +139,17 @@ class AggregateQuerysetMixin(object):
             date_fields = ["DateField", "DateTimeField"]
             if model._meta.get_field(group_fields[0]).get_internal_type() not in date_fields:
                 raise InvalidParameterException(
-                    "Group by date part ({}) requested for a non-date group by ({})".format(date_part, group_fields[0])
+                    f"Group by date part ({date_part}) requested for a non-date group by ({group_fields[0]})"
                 )
+
             # date_part must be a supported date component
             supported_date_parts = ["year", "month", "quarter", "day"]
             date_part = date_part.lower()
             if date_part not in supported_date_parts:
                 raise InvalidParameterException(
-                    "Date part {} is unsupported. Supported date parts are {}".format(date_part, supported_date_parts)
+                    f"Date part {date_part} is unsupported. Supported date parts are {supported_date_parts}"
                 )
+
 
         return agg_field, group_fields, date_part
 
@@ -199,18 +198,9 @@ class FilterQuerysetMixin(object):
         """Order a queryset based on request parameters."""
         queryset = kwargs.get("queryset")
 
-        # create a single dict that contains the requested aggregate parameters,
-        # regardless of request type (e.g., GET, POST)
-        # (not sure if this is a good practice, or we should be more
-        # prescriptive that aggregate requests can only be of one type)
-
-        params = dict(request.query_params)
-        params.update(dict(request.data))
+        params = dict(request.query_params) | request.data
         ordering = params.get("order")
-        if ordering is not None:
-            return queryset.order_by(*ordering)
-        else:
-            return queryset
+        return queryset.order_by(*ordering) if ordering is not None else queryset
 
 
 class AutocompleteResponseMixin(object):

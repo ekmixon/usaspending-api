@@ -20,14 +20,16 @@ def _generate_expected_response(award_id):
     mean a change needs to be made to both.
     """
 
-    results = {
-        "total_transaction_obligated_amount": OBLIGATED_AMOUNT_BY_AWARD_ID[award_id],
-        "awarding_agency_count": AGENCY_COUNT_BY_AWARD_ID[award_id]["awarding"],
+    return {
+        "total_transaction_obligated_amount": OBLIGATED_AMOUNT_BY_AWARD_ID[
+            award_id
+        ],
+        "awarding_agency_count": AGENCY_COUNT_BY_AWARD_ID[award_id][
+            "awarding"
+        ],
         "funding_agency_count": AGENCY_COUNT_BY_AWARD_ID[award_id]["funding"],
         "federal_account_count": award_id,
     }
-
-    return results
 
 
 def _test_post(client, request, expected_response_parameters_tuple=None, expected_status_code=status.HTTP_200_OK):

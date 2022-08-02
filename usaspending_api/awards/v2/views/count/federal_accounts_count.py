@@ -35,12 +35,11 @@ class FederalAccountCountRetrieveViewSet(APIView):
             award_filter = {award_id_column: award_id}
             award = Award.objects.get(**award_filter)
         except Award.DoesNotExist:
-            logger.info("No Award found with: '{}'".format(award_id))
-            raise NotFound("No Award found with: '{}'".format(award_id))
+            logger.info(f"No Award found with: '{award_id}'")
+            raise NotFound(f"No Award found with: '{award_id}'")
 
         federal_account_count = FinancialAccountsByAwards.objects.filter(award_id=award.id).count()
-        response_content = {"federal_accounts": federal_account_count}
-        return response_content
+        return {"federal_accounts": federal_account_count}
 
     @cache_response()
     def get(self, request: Request, requested_award: str) -> Response:

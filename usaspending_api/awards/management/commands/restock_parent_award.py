@@ -53,8 +53,6 @@ class Command(BaseCommand):
             self.logger.info("Restocking parent_award")
             cursor.execute(sql)
 
-            vacuum = options.get("vacuum")
-
-            if vacuum:
+            if vacuum := options.get("vacuum"):
                 self.logger.info("Vacuuming parent_award")
                 cursor.execute(vacuum)

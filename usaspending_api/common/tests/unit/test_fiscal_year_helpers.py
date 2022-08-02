@@ -21,7 +21,7 @@ def test_current_fiscal_year():
 
 def test_create_fiscal_year_list():
     assert fyh.create_fiscal_year_list(start_year=2004, end_year=2008) == [2004, 2005, 2006, 2007]
-    years = [x for x in range(2000, FiscalDate.today().next_fiscal_year.fiscal_year)]
+    years = list(range(2000, FiscalDate.today().next_fiscal_year.fiscal_year))
     assert fyh.create_fiscal_year_list() == years
 
 
@@ -258,9 +258,14 @@ def test_generate_fiscal_date_range():
     ]
     assert fyh.generate_fiscal_date_range(start, end, "fiscal_year") == expected
 
-    expected.append({"fiscal_year": 2020, "fiscal_quarter": 2, "fiscal_month": 4})
-    expected.append({"fiscal_year": 2020, "fiscal_quarter": 3, "fiscal_month": 7})
-    expected.append({"fiscal_year": 2020, "fiscal_quarter": 4, "fiscal_month": 10})
+    expected.extend(
+        (
+            {"fiscal_year": 2020, "fiscal_quarter": 2, "fiscal_month": 4},
+            {"fiscal_year": 2020, "fiscal_quarter": 3, "fiscal_month": 7},
+            {"fiscal_year": 2020, "fiscal_quarter": 4, "fiscal_month": 10},
+        )
+    )
+
     assert fyh.generate_fiscal_date_range(start, end, "quarter") == expected
 
     # 1-day period

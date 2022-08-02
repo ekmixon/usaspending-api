@@ -17,13 +17,15 @@ class BrokerIntegrationTestCase(TestCase):
     def tearDownClass(cls):
         # Follow-up of test_broker_transactional_test
         with connections["data_broker"].cursor() as cursor:
-            cursor.execute("select * from pg_tables where tablename = '{}'".format(cls.dummy_table_name))
+            cursor.execute(
+                f"select * from pg_tables where tablename = '{cls.dummy_table_name}'"
+            )
+
             results = cursor.fetchall()
         assert results is not None
         if len(results) != 0:
             pytest.fail(
-                "Test test_broker_transactional_test did not run transactionally. "
-                "Creation of table {} in Broker DB was not rolled back and still exists.".format(cls.dummy_table_name)
+                f"Test test_broker_transactional_test did not run transactionally. Creation of table {cls.dummy_table_name} in Broker DB was not rolled back and still exists."
             )
 
     @pytest.mark.django_db
@@ -34,7 +36,7 @@ class BrokerIntegrationTestCase(TestCase):
             cursor.execute("SELECT now()")
             results = cursor.fetchall()
         assert results is not None
-        assert len(str(results[0][0])) > 0
+        assert str(results[0][0]) != ""
 
     @pytest.mark.django_db
     def test_broker_transactional_test(self):
@@ -52,15 +54,21 @@ class BrokerIntegrationTestCase(TestCase):
         # Make sure the table and the data get in there
         connection = connections["data_broker"]
         with connection.cursor() as cursor:
-            cursor.execute("create table {} (contents text)".format(self.dummy_table_name))
-            cursor.execute("insert into {} values ('{}')".format(self.dummy_table_name, dummy_contents))
+            cursor.execute(f"create table {self.dummy_table_name} (contents text)")
+            cursor.execute(
+                f"insert into {self.dummy_table_name} values ('{dummy_contents}')"
+            )
+
         with connection.cursor() as cursor:
-            cursor.execute("select * from pg_tables where tablename = '{}'".format(self.dummy_table_name))
+            cursor.execute(
+                f"select * from pg_tables where tablename = '{self.dummy_table_name}'"
+            )
+
             results = cursor.fetchall()
         assert results is not None
-        assert len(str(results[0][0])) > 0
+        assert str(results[0][0]) != ""
         with connection.cursor() as cursor:
-            cursor.execute("select * from {}".format(self.dummy_table_name))
+            cursor.execute(f"select * from {self.dummy_table_name}")
             results = cursor.fetchall()
         assert results is not None
         assert str(results[0][0]) == dummy_contents
@@ -74,7 +82,7 @@ class BrokerIntegrationTestCase(TestCase):
             results = cursor.fetchall()
         assert results is not None
         assert len(results) > 0
-        assert len(str(results[0][0])) > 0
+        assert str(results[0][0]) != ""
 
 
 def test_can_connect_to_broker_by_dblink(broker_server_dblink_setup, db):
@@ -86,7 +94,7 @@ def test_can_connect_to_broker_by_dblink(broker_server_dblink_setup, db):
     with connection.cursor() as cursor:
         cursor.execute(f"select srvname from pg_foreign_server where srvname = '{settings.DATA_BROKER_DBLINK_NAME}'")
         results = cursor.fetchall()
-        if not results or not results[0][0] == settings.DATA_BROKER_DBLINK_NAME:
+        if not results or results[0][0] != settings.DATA_BROKER_DBLINK_NAME:
             pytest.skip(
                 f"No foreign server named '{settings.DATA_BROKER_DBLINK_NAME}' has been setup on this "
                 "USAspending database.  Skipping the test of integration with that server via dblink"
@@ -98,4 +106,4 @@ def test_can_connect_to_broker_by_dblink(broker_server_dblink_setup, db):
         results = cursor.fetchall()
     assert results is not None
     assert len(results) > 0
-    assert len(str(results[0][0])) > 0
+    assert str(results[0][0]) != ""

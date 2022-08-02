@@ -48,18 +48,18 @@ def test_logging_trace_spans(datadog_tracer: ddtrace.Tracer, caplog: LogCaptureF
     test = f"{inspect.stack()[0][3]}"
     DatadogLoggingTraceFilter.activate()
     with ddtrace.tracer.trace(
-        name=f"{test}_operation",
-        service=f"{test}_service",
-        resource=f"{test}_resource",
-        span_type=SpanTypes.TEST,
-    ) as span:
+            name=f"{test}_operation",
+            service=f"{test}_service",
+            resource=f"{test}_resource",
+            span_type=SpanTypes.TEST,
+        ) as span:
         trace_id = span.trace_id
         logger = logging.getLogger(f"{test}_logger")
         test_msg = f"a test message was logged during {test}"
         logger.warning(test_msg)
         # do things
         x = 2 ** 5
-        thirty_two_squares = [m for m in map(lambda y: y ** 2, range(x))]
+        thirty_two_squares = list(map(lambda y: y ** 2, range(x)))
         assert thirty_two_squares[-1] == 961
     assert test_msg in caplog.text, "caplog.text did not seem to capture logging output during test"
     assert f"SPAN#{trace_id}" in caplog.text, "span marker not found in logging output"
@@ -77,18 +77,18 @@ def test_drop_key_on_trace_spans(datadog_tracer: ddtrace.Tracer, caplog: LogCapt
     DatadogLoggingTraceFilter.activate()
     DatadogEagerlyDropTraceFilter.activate()
     with ddtrace.tracer.trace(
-        name=f"{test}_operation",
-        service=f"{test}_service",
-        resource=f"{test}_resource",
-        span_type=SpanTypes.TEST,
-    ) as span:
+            name=f"{test}_operation",
+            service=f"{test}_service",
+            resource=f"{test}_resource",
+            span_type=SpanTypes.TEST,
+        ) as span:
         trace_id1 = span.trace_id
         logger = logging.getLogger(f"{test}_logger")
         test_msg = f"a test message was logged during {test}"
         logger.warning(test_msg)
         # do things
         x = 2 ** 5
-        thirty_two_squares = [m for m in map(lambda y: y ** 2, range(x))]
+        thirty_two_squares = list(map(lambda y: y ** 2, range(x)))
         assert thirty_two_squares[-1] == 961
 
         # Drop this span so it is not sent to the server, and not logged by the trace logger
@@ -188,12 +188,12 @@ def test_subprocess_trace(datadog_tracer: ddtrace.Tracer, caplog: LogCaptureFixt
 def _do_things_in_subproc(subproc_test_msg, q: mp.Queue):
     test = f"{inspect.stack()[0][3]}"
     with SubprocessTrace(
-        name=f"{test}_operation",
-        service=f"{test}_service",
-        resource=f"{test}_resource",
-        span_type=SpanTypes.TEST,
-        subproc_test_msg=subproc_test_msg,
-    ) as span:
+            name=f"{test}_operation",
+            service=f"{test}_service",
+            resource=f"{test}_resource",
+            span_type=SpanTypes.TEST,
+            subproc_test_msg=subproc_test_msg,
+        ) as span:
         span_ids = (
             span.trace_id,
             span.span_id,
@@ -202,6 +202,6 @@ def _do_things_in_subproc(subproc_test_msg, q: mp.Queue):
         logging.getLogger(f"{test}_logger").warning(subproc_test_msg)
         # do things
         x = 2 ** 5
-        thirty_two_squares = [m for m in map(lambda y: y ** 2, range(x))]
+        thirty_two_squares = list(map(lambda y: y ** 2, range(x)))
         assert thirty_two_squares[-1] == 961
         logging.getLogger(f"{test}_logger").warning("DONE doing things in subproc")

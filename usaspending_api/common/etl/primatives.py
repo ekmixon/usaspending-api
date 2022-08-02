@@ -123,7 +123,7 @@ def make_composed_qualified_table_name(
     if schema_name is not None:
         template += ".{}"
     if alias is not None:
-        template = template + " as {}"
+        template += " as {}"
     objects = [Identifier(o) for o in [schema_name, table_name, alias] if o is not None]
     return SQL(template).format(*objects)
 

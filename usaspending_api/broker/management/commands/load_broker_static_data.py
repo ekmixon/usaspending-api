@@ -29,5 +29,5 @@ class Command(BaseCommand):
             if created:
                 new_rows += 1
 
-        logger.info("Stored External Data Types, {} records added".format(new_rows))
+        logger.info(f"Stored External Data Types, {new_rows} records added")
         logger.info("Finished data load: Broker Static Data")

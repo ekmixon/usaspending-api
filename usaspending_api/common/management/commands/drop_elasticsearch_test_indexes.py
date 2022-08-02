@@ -17,14 +17,10 @@ class Command(BaseCommand):
         response = client.indices.delete(TEST_INDEX_NAME_PATTERN)
         if response.get("acknowledged") is True:
             logger.info(
-                "All Elasticsearch indexes matching '{}' have been dropped from {}... probably.".format(
-                    TEST_INDEX_NAME_PATTERN, settings.ES_HOSTNAME
-                )
+                f"All Elasticsearch indexes matching '{TEST_INDEX_NAME_PATTERN}' have been dropped from {settings.ES_HOSTNAME}... probably."
             )
+
         else:
             logger.warning(
-                "Attempted to drop All Elasticsearch indexes matching '{}' from {} but did "
-                "not receive a positive acknowledgment.  Is that a problem?  ¯\\_(ツ)_/¯".format(
-                    TEST_INDEX_NAME_PATTERN, settings.ES_HOSTNAME
-                )
+                f"Attempted to drop All Elasticsearch indexes matching '{TEST_INDEX_NAME_PATTERN}' from {settings.ES_HOSTNAME} but did not receive a positive acknowledgment.  Is that a problem?  ¯\\_(ツ)_/¯"
             )

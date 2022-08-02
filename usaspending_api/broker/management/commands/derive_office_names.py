@@ -44,8 +44,9 @@ class Command(load_base.Command):
 
         ds_cursor.execute("CREATE TABLE temp_broker_office (office_name TEXT, office_code TEXT, sub_tier_code TEXT)")
         ds_cursor.execute(
-            "INSERT INTO temp_broker_office (office_name, office_code, sub_tier_code) VALUES " + all_offices_str
+            f"INSERT INTO temp_broker_office (office_name, office_code, sub_tier_code) VALUES {all_offices_str}"
         )
+
 
         logger.info("Deriving FABS awarding_office_names with awarding_office_codes from the temporary Office table...")
         ds_cursor.execute(

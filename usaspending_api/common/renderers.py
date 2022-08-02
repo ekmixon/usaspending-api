@@ -79,10 +79,8 @@ class DocumentAPIRenderer(BrowsableAPIRenderer):
         """
         context = super(DocumentAPIRenderer, self).get_context(data, accepted_media_type, renderer_context)
 
-        view = renderer_context.get("view") or context.get("view")
-        if view:
-            endpoint_doc = getattr(view, "endpoint_doc", None)
-            if endpoint_doc:
+        if view := renderer_context.get("view") or context.get("view"):
+            if endpoint_doc := getattr(view, "endpoint_doc", None):
                 git_branch = self._get_current_git_branch("master")
                 endpoint_doc = str(REPO_DIR / endpoint_doc)
                 endpoint_url = self._build_github_url(endpoint_doc, git_branch)
@@ -116,7 +114,6 @@ class DocumentAPIRenderer(BrowsableAPIRenderer):
     @staticmethod
     def _add_url_to_description(description, endpoint_url):
         if endpoint_url:
-            return '{}\n<p>Documentation for this endpoint can be found <a href="{}">here</a>.</p>'.format(
-                description, endpoint_url
-            ).strip()
+            return f'{description}\n<p>Documentation for this endpoint can be found <a href="{endpoint_url}">here</a>.</p>'.strip()
+
         return description

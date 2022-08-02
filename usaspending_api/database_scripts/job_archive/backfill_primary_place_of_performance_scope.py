@@ -99,7 +99,7 @@ def build_spending_update_query(query_base, update_data):
 
 
 def print_no_rows_to_update(transaction_type):
-    logging.info("[{}] No rows to update".format(transaction_type))
+    logging.info(f"[{transaction_type}] No rows to update")
 
 
 def run_broker_select_query(transaction_sql, min_id, max_id):
@@ -127,8 +127,8 @@ if __name__ == "__main__":
 
     with Timer() as overall_timer:
         with psycopg2.connect(dsn=SPENDING_CONNECTION_STRING) as spending_connection, psycopg2.connect(
-            dsn=BROKER_CONNECTION_STRING
-        ) as broker_connection:
+                    dsn=BROKER_CONNECTION_STRING
+                ) as broker_connection:
             spending_connection.autocommit = True
 
             logging.info("Running FABS backfill from Broker to USAspending")
@@ -148,9 +148,10 @@ if __name__ == "__main__":
                 while _min <= max_id:
                     _max = min(_min + CHUNK_SIZE - 1, max_id)
 
-                    logging.info("Fetching {}-{} out of {} records from broker".format(_min, _max, fabs_total))
-                    broker_fabs_data = run_broker_select_query(BROKER_FABS_SELECT_SQL, min_id=_min, max_id=_max)
-                    if broker_fabs_data:
+                    logging.info(f"Fetching {_min}-{_max} out of {fabs_total} records from broker")
+                    if broker_fabs_data := run_broker_select_query(
+                        BROKER_FABS_SELECT_SQL, min_id=_min, max_id=_max
+                    ):
                         updated_row_count = run_spending_update_query(
                             SPENDING_FABS_UPDATE_SQL, "FABS", broker_fabs_data
                         )

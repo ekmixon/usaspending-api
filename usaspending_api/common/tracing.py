@@ -19,11 +19,10 @@ _logger = logging.getLogger(__name__)
 def _activate_trace_filter(filter_class: Callable) -> None:
     if not hasattr(tracer, "_filters"):
         _logger.warning("Datadog tracer client no longer has attribute '_filters' on which to append a span filter")
+    elif tracer._filters:
+        tracer._filters.append(filter_class())
     else:
-        if tracer._filters:
-            tracer._filters.append(filter_class())
-        else:
-            tracer._filters = [filter_class()]
+        tracer._filters = [filter_class()]
 
 
 class DatadogEagerlyDropTraceFilter:

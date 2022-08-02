@@ -19,7 +19,7 @@ def timer(msg="", logging_func=print):
     confusing when errors occur in code wrapped by the timer.
     """
     start = time.perf_counter()
-    logging_func("Beginning {}...".format(msg))
+    logging_func(f"Beginning {msg}...")
     try:
         yield {}
     finally:
@@ -113,7 +113,7 @@ class Timer:
 
     @property
     def starting_message(self):
-        return "[{}] starting...".format(self.message)
+        return f"[{self.message}] starting..."
 
     def log_success_message(self):
         if self.message:
@@ -121,7 +121,7 @@ class Timer:
 
     @property
     def success_message(self):
-        return "[{}] finished successfully after {}".format(self.message, self)
+        return f"[{self.message}] finished successfully after {self}"
 
     def log_failure_message(self):
         if self.message:
@@ -129,7 +129,7 @@ class Timer:
 
     @property
     def failure_message(self):
-        return "[{}] FAILED AFTER {}".format(self.message, self)
+        return f"[{self.message}] FAILED AFTER {self}"
 
     @property
     def elapsed(self):

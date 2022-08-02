@@ -34,7 +34,10 @@ def subaward_filter(filters, for_downloads=False):
     for key, value in filters.items():
 
         if value is None:
-            raise InvalidParameterException("Invalid filter: " + key + " has null as its value.")
+            raise InvalidParameterException(
+                f"Invalid filter: {key} has null as its value."
+            )
+
 
         key_list = [
             "keywords",
@@ -64,7 +67,7 @@ def subaward_filter(filters, for_downloads=False):
         ]
 
         if key not in key_list:
-            raise InvalidParameterException("Invalid filter: " + key + " does not exist.")
+            raise InvalidParameterException(f"Invalid filter: {key} does not exist.")
 
         if key == "keywords":
 
@@ -85,7 +88,7 @@ def subaward_filter(filters, for_downloads=False):
             for keyword in value:
                 filter_obj |= keyword_parse(keyword)
             potential_duns = list(filter((lambda x: len(x) > 7 and len(x) < 10), value))
-            if len(potential_duns) > 0:
+            if potential_duns:
                 filter_obj |= Q(recipient_unique_id__in=potential_duns) | Q(
                     parent_recipient_unique_id__in=potential_duns
                 )
@@ -223,26 +226,23 @@ def subaward_filter(filters, for_downloads=False):
             q = PSCCodes.build_tas_codes_filter(value)
             queryset = queryset.filter(q) if q else queryset
 
-        # add "naics_codes" (column naics) after NAICS are mapped to subawards
         elif key in ("program_numbers", "contract_pricing_type_codes"):
             filter_to_col = {
                 "program_numbers": "cfda_number",
                 "contract_pricing_type_codes": "type_of_contract_pricing",
             }
-            in_query = [v for v in value]
-            if len(in_query) != 0:
+            in_query = list(value)
+            if in_query:
                 queryset &= SubawardView.objects.filter(**{"{}__in".format(filter_to_col[key]): in_query})
 
         elif key in ("set_aside_type_codes", "extent_competed_type_codes"):
             or_queryset = Q()
             filter_to_col = {"set_aside_type_codes": "type_set_aside", "extent_competed_type_codes": "extent_competed"}
-            in_query = [v for v in value]
+            in_query = list(value)
             for v in value:
                 or_queryset |= Q(**{"{}__exact".format(filter_to_col[key]): in_query})
             queryset = queryset.filter(or_queryset)
 
-        # Because these two filters OR with each other, we need to know about the presence of both filters to know what to do
-        # This filter was picked arbitrarily to be the one that checks for the other
         elif key == TasCodes.underscore_name:
             q = TasCodes.build_tas_codes_filter(queryset, value)
             if TreasuryAccounts.underscore_name in filters.keys():

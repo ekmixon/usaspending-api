@@ -59,7 +59,7 @@ class ThreadedDataLoader:
             # being spat to console whenever this loader is used.
             # can change to self.processes = multiprocessing.cpu_count() * 2 or something else if we fix this issue
             self.processes = 1
-            self.logger.info("Setting processes count to " + str(self.processes))
+            self.logger.info(f"Setting processes count to {self.processes}")
         self.field_map = field_map
         self.value_map = value_map
         self.collision_field = collision_field
@@ -73,7 +73,7 @@ class ThreadedDataLoader:
     # The filepath parameter should be the string location of the file for use with open()
     def load_from_file(self, filepath, encoding="utf-8", remote_file=False):
         if not remote_file:
-            self.logger.info("Started processing file " + filepath)
+            self.logger.info(f"Started processing file {filepath}")
 
         # Create the Queue object - this will hold all the rows in the CSV
         row_queue = JoinableQueue(500)
@@ -91,18 +91,17 @@ class ThreadedDataLoader:
         # We have to kill any DB connections before forking processes, as Django will want to share the single
         # connection with all processes and we don't want to have any deadlock/efficiency problems due to that
         db.connections.close_all()
-        pool = []
-        for i in range(self.processes):
-            pool.append(
-                DataLoaderThread(
-                    "Process-" + str(len(pool)),
-                    self.model_class,
-                    row_queue,
-                    self.field_map.copy(),
-                    self.value_map.copy(),
-                    references,
-                )
+        pool = [
+            DataLoaderThread(
+                f"Process-{len(pool)}",
+                self.model_class,
+                row_queue,
+                self.field_map.copy(),
+                self.value_map.copy(),
+                references,
             )
+            for _ in range(self.processes)
+        ]
 
         for process in pool:
             process.start()
@@ -114,7 +113,7 @@ class ThreadedDataLoader:
             with open(filepath, encoding=encoding) as csv_file:
                 row_queue = self.csv_file_to_queue(csv_file, row_queue)
 
-        for i in range(self.processes):
+        for _ in range(self.processes):
             row_queue.put(None)
 
         row_queue.join()
@@ -135,7 +134,7 @@ class ThreadedDataLoader:
             count = count + 1
             temp_row_queue.put(row)
             if count % 1000 == 0:
-                self.logger.info("Queued row " + str(count))
+                self.logger.info(f"Queued row {str(count)}")
         return temp_row_queue
 
 
@@ -150,10 +149,10 @@ class DataLoaderThread(Process):
         self.references = references
 
     def run(self):
-        self.references["logger"].info("Starting " + self.name)
+        self.references["logger"].info(f"Starting {self.name}")
         connection.connect()
         self.process_data()
-        self.references["logger"].info("Exiting " + self.name)
+        self.references["logger"].info(f"Exiting {self.name}")
 
     def process_data(self):
         # Make sure we weren't flagged to exit
@@ -188,17 +187,13 @@ class DataLoaderThread(Process):
                         self.data_queue.task_done()
                         continue
                     if behavior == "skip_and_complain":  # Log a warning and skip the row
-                        self.references["logger"].warning("Hit a collision on row %s" % (row))
+                        self.references["logger"].warning(f"Hit a collision on row {row}")
                         self.data_queue.task_done()
                         continue
                     if behavior == "die":  # Raise an exception and cease execution
-                        raise Exception("Hit collision on row %s" % (row))
+                        raise Exception(f"Hit collision on row {row}")
 
-            if not update:
-                model_instance = self.model_class()
-            else:
-                model_instance = collision_instance
-
+            model_instance = collision_instance if update else self.model_class()
             try:
                 if self.references["pre_row_function"] is not None:
                     self.references["pre_row_function"](row=row, instance=model_instance)
@@ -242,26 +237,17 @@ class DataLoaderThread(Process):
                 if callable(value_map[model_field]):
                     value = value_map[model_field](row)
                     self.store_value(mod, model_field, value)
-                    loaded = True
                 else:
                     self.store_value(mod, model_field, value_map[model_field])
-                    loaded = True
-            # If we're not in the value map or the long_to_terse_labels, check the field map
+                loaded = True
             elif model_field in field_map:
                 source_field = field_map[model_field]
-            # If our field is the 'long form' field, we need to get what it maps to
-            # in the data so we can map the data properly
             elif model_field in LONG_TO_TERSE_LABELS:
                 source_field = LONG_TO_TERSE_LABELS[model_field]
 
             # If we haven't loaded via value map, load in the data using the source field
-            if not loaded:
-                if source_field in row:
-                    self.store_value(mod, model_field, row[source_field])
-                else:
-                    pass
-                    # logger.warning("Field " + source_field + " not available in data")
-
+            if not loaded and source_field in row:
+                self.store_value(mod, model_field, row[source_field])
         if as_dict:
             return mod
 

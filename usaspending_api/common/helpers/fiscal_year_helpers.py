@@ -36,7 +36,7 @@ def create_fiscal_year_list(start_year=2000, end_year=None):
     if start_year is None or start_year >= end_year:
         raise Exception("Invalid start_year and end_year values")
 
-    return [year for year in range(start_year, end_year)]
+    return list(range(start_year, end_year))
 
 
 def generate_fiscal_year(date):
@@ -53,9 +53,7 @@ def generate_fiscal_month(date):
     """ Generate fiscal period based on the date provided """
     validate_date(date)
 
-    if date.month in [10, 11, 12]:
-        return date.month - 9
-    return date.month + 3
+    return date.month - 9 if date.month in [10, 11, 12] else date.month + 3
 
 
 def generate_fiscal_quarter(date):
@@ -75,7 +73,7 @@ def generate_fiscal_year_and_quarter(date):
     validate_date(date)
     quarter = FiscalDate(date.year, date.month, date.day).quarter
     year = generate_fiscal_year(date)
-    return "{}-Q{}".format(year, quarter)
+    return f"{year}-Q{quarter}"
 
 
 def dates_are_fiscal_year_bookends(start, end):
@@ -145,7 +143,7 @@ def create_full_time_periods(min_date, max_date, group, columns):
 
     results = []
     for fy in fiscal_years:
-        while period <= rollover and not (period > ending and fy == fiscal_years[-1]):
+        while period <= rollover and (period <= ending or fy != fiscal_years[-1]):
             results.append({**cols, **{"time_period": {"fy": str(fy), group: str(period)}}})
             period += 1
         period = 1

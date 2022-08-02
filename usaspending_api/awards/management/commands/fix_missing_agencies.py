@@ -27,7 +27,7 @@ class Command(BaseCommand):
                 qry = base_qry.format(floor=floor, ceiling=ceiling)
                 curs.execute(qry)
                 elapsed = time.time() - start_time
-                logger.info("{}: ID {} to {}, {} s".format(descrip, floor, ceiling, elapsed))
+                logger.info(f"{descrip}: ID {floor} to {ceiling}, {elapsed} s")
 
     def handle(self, *args, **options):
 
@@ -36,7 +36,7 @@ class Command(BaseCommand):
             # create matview
             logger.info("Creating matview")
             curs.execute(self.MATVIEW_CREATE)
-            logger.info("Time to create matview: {}".format(time.time() - start))
+            logger.info(f"Time to create matview: {time.time() - start}")
 
             # run the queries
             self._run_updaters(

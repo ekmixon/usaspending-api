@@ -39,9 +39,9 @@ def set_db_timeout(timeout_in_seconds):
                 prev_timeout = cursor.fetchall()[0][0]
 
                 logger.warning(
-                    "DB TIMEOUT DECORATOR: Old Postgres statement_timeout value = %s on this connection"
-                    % str(prev_timeout)
+                    f"DB TIMEOUT DECORATOR: Old Postgres statement_timeout value = {str(prev_timeout)} on this connection"
                 )
+
 
                 logger.warning(
                     "DB TIMEOUT DECORATOR: Setting Postgres statement_timeout to %ds  on this connection"
@@ -51,9 +51,9 @@ def set_db_timeout(timeout_in_seconds):
 
                 cursor.execute("show statement_timeout")
                 logger.warning(
-                    "DB TIMEOUT DECORATOR: New Postgres statement_timeout value = %s on this connection"
-                    % str(cursor.fetchall()[0][0])
+                    f"DB TIMEOUT DECORATOR: New Postgres statement_timeout value = {str(cursor.fetchall()[0][0])} on this connection"
                 )
+
 
             try:
                 func_response = func(*args, **kwargs)
@@ -63,9 +63,9 @@ def set_db_timeout(timeout_in_seconds):
                 with connection.cursor() as cursor:
                     cursor.execute("show statement_timeout")
                     logger.warning(
-                        "DB TIMEOUT DECORATOR: Old Postgres statement_timeout value = %s on this connection"
-                        % str(cursor.fetchall()[0][0])
+                        f"DB TIMEOUT DECORATOR: Old Postgres statement_timeout value = {str(cursor.fetchall()[0][0])} on this connection"
                     )
+
 
                     logger.warning(
                         "DB TIMEOUT DECORATOR: Setting Postgres statement_timeout to {0} on this connection".format(
@@ -76,9 +76,9 @@ def set_db_timeout(timeout_in_seconds):
 
                     cursor.execute("show statement_timeout")
                     logger.warning(
-                        "DB TIMEOUT DECORATOR: New Postgres statement_timeout value = %s on this connection"
-                        % str(cursor.fetchall()[0][0])
+                        f"DB TIMEOUT DECORATOR: New Postgres statement_timeout value = {str(cursor.fetchall()[0][0])} on this connection"
                     )
+
 
             return func_response
 

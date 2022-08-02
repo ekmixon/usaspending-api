@@ -67,27 +67,28 @@ EXAMPLE SQL DESCRIPTION JSON FILE:
 
 
 def make_matview_drops(final_matview_name):
-    matview_temp_name = final_matview_name + "_temp"
-    matview_archive_name = final_matview_name + "_old"
+    matview_temp_name = f"{final_matview_name}_temp"
+    matview_archive_name = f"{final_matview_name}_old"
 
     return [TEMPLATE["drop_matview"].format(matview_temp_name), TEMPLATE["drop_matview"].format(matview_archive_name)]
 
 
 def make_matview_create(final_matview_name, sql):
     matview_sql = "\n".join(sql)
-    matview_temp_name = final_matview_name + "_temp"
-    with_or_without_data = ""
-    if GLOBAL_ARGS.no_data:
-        with_or_without_data = "NO "
-
+    matview_temp_name = f"{final_matview_name}_temp"
+    with_or_without_data = "NO " if GLOBAL_ARGS.no_data else ""
     return [TEMPLATE["create_matview"].format(matview_temp_name, matview_sql, with_or_without_data)]
 
 
 def make_rename_sql(matview_name, old_indexes, old_stats, new_indexes, new_stats):
-    matview_temp_name = matview_name + "_temp"
-    matview_archive_name = matview_name + "_old"
-    sql_strings = []
-    sql_strings.append(TEMPLATE["rename_matview"].format("IF EXISTS ", matview_name, matview_archive_name))
+    matview_temp_name = f"{matview_name}_temp"
+    matview_archive_name = f"{matview_name}_old"
+    sql_strings = [
+        TEMPLATE["rename_matview"].format(
+            "IF EXISTS ", matview_name, matview_archive_name
+        )
+    ]
+
     sql_strings += old_indexes
     sql_strings.append("")
     sql_strings += old_stats
@@ -114,7 +115,7 @@ def create_all_sql_strings(sql_json):
     final_sql_strings = []
 
     matview_name = sql_json["final_name"]
-    matview_temp_name = matview_name + "_temp"
+    matview_temp_name = f"{matview_name}_temp"
 
     create_indexes, rename_old_indexes, rename_new_indexes = make_indexes_sql(
         sql_json, matview_temp_name, UNIQUE_STRING, True, GLOBAL_ARGS.quiet
@@ -141,9 +142,9 @@ def create_all_sql_strings(sql_json):
 
 
 def write_sql_file(str_list, filename):
-    fname = filename + ".sql"
+    fname = f"{filename}.sql"
 
-    print_debug("Creating file: {}".format(fname))
+    print_debug(f"Creating file: {fname}")
     with open(fname, "w") as f:
         fstring = "\n".join(str_list)
         f.write(fstring)
@@ -155,7 +156,7 @@ def create_componentized_files(sql_json):
     index_dir_path = os.path.join(filename_base, "batch_indexes/")
 
     matview_name = sql_json["final_name"]
-    matview_temp_name = matview_name + "_temp"
+    matview_temp_name = f"{matview_name}_temp"
 
     create_indexes, rename_old_indexes, rename_new_indexes = make_indexes_sql(
         sql_json, matview_temp_name, UNIQUE_STRING, True, GLOBAL_ARGS.quiet
@@ -163,39 +164,39 @@ def create_componentized_files(sql_json):
     create_stats, rename_old_stats, rename_new_stats = make_stats_sql(sql_json, matview_temp_name, UNIQUE_STRING)
 
     sql_strings = make_matview_drops(matview_name)
-    write_sql_file(sql_strings, filename_base + "__drops")
+    write_sql_file(sql_strings, f"{filename_base}__drops")
 
     sql_strings = make_matview_create(matview_name, sql_json["matview_sql"])
-    write_sql_file(sql_strings, filename_base + "__matview")
+    write_sql_file(sql_strings, f"{filename_base}__matview")
 
     indexes_and_stats = create_indexes + create_stats
-    write_sql_file(indexes_and_stats, filename_base + "__indexes")
+    write_sql_file(indexes_and_stats, f"{filename_base}__indexes")
 
     if GLOBAL_ARGS.batch_indexes > 1:
         if not os.path.exists(index_dir_path):
             os.makedirs(index_dir_path)
         for i, index_block in enumerate(split_indexes_chunks(indexes_and_stats, GLOBAL_ARGS.batch_indexes)):
-            write_sql_file(index_block, index_dir_path + "group_{}".format(i))
+            write_sql_file(index_block, index_dir_path + f"group_{i}")
 
     sql_strings = make_modification_sql(matview_name, GLOBAL_ARGS.quiet)
-    write_sql_file(sql_strings, filename_base + "__mods")
+    write_sql_file(sql_strings, f"{filename_base}__mods")
 
     sql_strings = make_rename_sql(
         matview_name, rename_old_indexes, rename_old_stats, rename_new_indexes, rename_new_stats
     )
-    write_sql_file(sql_strings, filename_base + "__renames")
+    write_sql_file(sql_strings, f"{filename_base}__renames")
 
     if "refresh" in sql_json and sql_json["refresh"] is True:
         if GLOBAL_ARGS.no_data:
             sql_strings = make_matview_refresh(matview_temp_name, "")
         else:
             sql_strings = make_matview_refresh(matview_name)
-        write_sql_file(sql_strings, filename_base + "__refresh")
+        write_sql_file(sql_strings, f"{filename_base}__refresh")
 
 
 def create_monolith_file(sql_json):
     sql_strings = create_all_sql_strings(sql_json)
-    print_debug('Preparing to store "{}" in sql file'.format(sql_json["final_name"]))
+    print_debug(f'Preparing to store "{sql_json["final_name"]}" in sql file')
     write_sql_file(sql_strings, os.path.join(DEST_FOLDER, sql_json["final_name"]))
 
 
@@ -208,7 +209,7 @@ def main(source_file):
     try:
         sql_json = ingest_json(source_file)
     except Exception as e:
-        print("Error on Matview source JSON file: {}".format(source_file))
+        print(f"Error on Matview source JSON file: {source_file}")
         print(e)
         raise SystemExit(1)
 
@@ -253,12 +254,12 @@ if __name__ == "__main__":
     if not os.path.exists(os.path.join(DEST_FOLDER, COMPONENT_DIR)):
         os.makedirs(os.path.join(DEST_FOLDER, COMPONENT_DIR))
 
-    if GLOBAL_ARGS.file is not None:
-        if os.path.isfile(GLOBAL_ARGS.file):
-            print_debug("Creating matview SQL using {}".format(GLOBAL_ARGS.file))
-            main(GLOBAL_ARGS.file)
-    else:
+    if GLOBAL_ARGS.file is None:
         all_files = glob.glob(os.path.join(HERE, "*.json"))
         for f in all_files:
-            print_debug("\n==== {}".format(f))
+            print_debug(f"\n==== {f}")
             main(f)
+
+    elif os.path.isfile(GLOBAL_ARGS.file):
+        print_debug(f"Creating matview SQL using {GLOBAL_ARGS.file}")
+        main(GLOBAL_ARGS.file)

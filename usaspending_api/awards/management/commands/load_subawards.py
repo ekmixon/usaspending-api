@@ -32,7 +32,7 @@ class Command(mixins.ETLMixin, BaseCommand):
     def handle(self, *args, **options):
 
         self.full_reload = options["full_reload"]
-        logger.info("FULL RELOAD SWITCH: {}".format(self.full_reload))
+        logger.info(f"FULL RELOAD SWITCH: {self.full_reload}")
 
         with Timer("Load subawards"):
             try:

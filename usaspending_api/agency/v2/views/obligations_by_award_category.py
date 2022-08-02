@@ -31,8 +31,7 @@ class ObligationsByAwardCategory(AgencyBase):
         return Response(formatted_results)
 
     def query_elasticsearch(self):
-        filters = {}
-        filters["time_period"] = create_fiscal_year_filter(self.fiscal_year)
+        filters = {"time_period": create_fiscal_year_filter(self.fiscal_year)}
         filters["agencies"] = [{"toptier_id": self.agency_id, "type": "awarding", "tier": "toptier"}]
 
         filter_query = QueryWithFilters.generate_transactions_elasticsearch_query(filters)
@@ -65,7 +64,7 @@ class ObligationsByAwardCategory(AgencyBase):
             obligation_value = obj["obligations"]["value"]
             total += obligation_value
 
-            if key in category_map.keys():
+            if key in category_map:
                 results_map[key] = round(obligation_value, 2)
             else:
                 other_total += obligation_value
@@ -79,9 +78,10 @@ class ObligationsByAwardCategory(AgencyBase):
             else:
                 formatted_categories.append(self.format_category(category_mapping, 0.0))
 
-        formatted_results = {"total_aggregated_amount": round(total, 2), "results": formatted_categories}
-
-        return formatted_results
+        return {
+            "total_aggregated_amount": round(total, 2),
+            "results": formatted_categories,
+        }
 
     def format_category(self, category, aggregated_amount):
         return {"category": category, "aggregated_amount": aggregated_amount}

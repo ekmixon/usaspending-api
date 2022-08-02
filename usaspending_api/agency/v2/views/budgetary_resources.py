@@ -35,13 +35,14 @@ class BudgetaryResources(AgencyBase):
         q = Q()
         for sub in submission_windows:
             q |= Q(fiscal_year=sub["fiscal_year"]) & Q(fiscal_period=sub["fiscal_period"])
-        results = (
+        return (
             GTASSF133Balances.objects.filter(q)
             .values("fiscal_year")
-            .annotate(total_budgetary_resources=Sum("total_budgetary_resources_cpe"))
+            .annotate(
+                total_budgetary_resources=Sum("total_budgetary_resources_cpe")
+            )
             .values("fiscal_year", "total_budgetary_resources")
         )
-        return results
 
     def get_periods_by_year(self):
         periods = {}
@@ -65,16 +66,13 @@ class BudgetaryResources(AgencyBase):
                     }
                 )
             else:
-                periods.update(
+                periods[abb["fiscal_year"]] = [
                     {
-                        abb["fiscal_year"]: [
-                            {
-                                "period": abb["submission__reporting_fiscal_period"],
-                                "obligated": abb["sum"],
-                            }
-                        ]
+                        "period": abb["submission__reporting_fiscal_period"],
+                        "obligated": abb["sum"],
                     }
-                )
+                ]
+
         return periods
 
     def get_agency_budgetary_resources(self):
@@ -92,9 +90,7 @@ class BudgetaryResources(AgencyBase):
         )
 
         fbr = self.get_total_federal_budgetary_resources()
-        resources = {}
-        for z in fbr:
-            resources.update({z["fiscal_year"]: z["total_budgetary_resources"]})
+        resources = {z["fiscal_year"]: z["total_budgetary_resources"] for z in fbr}
         periods = self.get_periods_by_year()
         results = [
             {

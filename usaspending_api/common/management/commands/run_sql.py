@@ -36,11 +36,13 @@ class Command(BaseCommand):
         files = files[0]
         for file in files:
             if not file.endswith(".sql"):
-                logger.info("Skipping %s due to incorrect file extension" % file)
+                logger.info(f"Skipping {file} due to incorrect file extension")
 
             start = datetime.now()
-            logger.info("Running %s" % file)
+            logger.info(f"Running {file}")
             self.run_sql_file(file)
-            logger.info("Finished %s in %s seconds" % (file, str(datetime.now() - start)))
+            logger.info(f"Finished {file} in {str(datetime.now() - start)} seconds")
 
-        logger.info("Finished all queries in %s seconds" % str(datetime.now() - total_start))
+        logger.info(
+            f"Finished all queries in {str(datetime.now() - total_start)} seconds"
+        )

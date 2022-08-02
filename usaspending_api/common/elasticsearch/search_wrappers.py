@@ -20,7 +20,7 @@ class _Search(Search):
 
     def __init__(self, **kwargs) -> None:
         client = self._create_es_client()
-        kwargs.update({"index": self._index_name, "using": client})
+        kwargs |= {"index": self._index_name, "using": client}
         super().__init__(**kwargs)
 
     @staticmethod
@@ -44,7 +44,7 @@ class _Search(Search):
 
             return Elasticsearch(**es_config)
         except Exception as e:
-            logger.error("Error creating the elasticsearch client: {}".format(e))
+            logger.error(f"Error creating the elasticsearch client: {e}")
 
     def _execute(self, timeout: str):
         return self.params(timeout=timeout).execute()
@@ -57,7 +57,7 @@ class _Search(Search):
             retries = 20
         elif retries < 1:
             retries = 1
-        for attempt in range(retries):
+        for _ in range(retries):
             response = func(timeout)
             if response is None:
                 logger.info(f"Failure using these: Index='{self._index_name}', Body={self.to_dict()}")

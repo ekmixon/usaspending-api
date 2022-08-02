@@ -65,7 +65,7 @@ def get_fully_qualified_name(obj):
     "usaspending_api.common.helpers.endpoint_documentation.get_fully_qualified_name"
     for this function.
     """
-    return "{}.{}".format(obj.__module__, obj.__qualname__)
+    return f"{obj.__module__}.{obj.__qualname__}"
 
 
 def validate_docs(url, url_object, master_endpoint_list):
@@ -86,20 +86,17 @@ def validate_docs(url, url_object, master_endpoint_list):
     messages = []
 
     if not hasattr(view, "endpoint_doc"):
-        messages.append("{} ({}) missing endpoint_doc property".format(qualified_name, url))
-    else:
-        endpoint_doc = getattr(view, "endpoint_doc")
-        if not endpoint_doc:
-            messages.append("{}.endpoint_doc ({}) is invalid".format(qualified_name, url))
-        else:
-            absolute_endpoint_doc = str(REPO_DIR / endpoint_doc)
-            if not case_sensitive_file_exists(absolute_endpoint_doc):
-                messages.append(
-                    "{}.endpoint_doc ({}) references a file that does not exist ({})".format(
-                        qualified_name, url, endpoint_doc
-                    )
-                )
+        messages.append(f"{qualified_name} ({url}) missing endpoint_doc property")
+    elif endpoint_doc := getattr(view, "endpoint_doc"):
+        absolute_endpoint_doc = str(REPO_DIR / endpoint_doc)
+        if not case_sensitive_file_exists(absolute_endpoint_doc):
+            messages.append(
+                f"{qualified_name}.endpoint_doc ({url}) references a file that does not exist ({endpoint_doc})"
+            )
 
+
+    else:
+        messages.append(f"{qualified_name}.endpoint_doc ({url}) is invalid")
     if not (view.__doc__ or "").strip():
         messages.append(
             f"{qualified_name} ({url}) has no docstring.  The docstring is used to provide documentation in "
@@ -115,6 +112,9 @@ def validate_docs(url, url_object, master_endpoint_list):
         if re.fullmatch(pattern, endpoint):
             break
     else:
-        messages.append("No URL found in {} that matches {} ({})".format(ENDPOINTS_MD, url, qualified_name))
+        messages.append(
+            f"No URL found in {ENDPOINTS_MD} that matches {url} ({qualified_name})"
+        )
+
 
     return messages

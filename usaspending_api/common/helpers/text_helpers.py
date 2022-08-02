@@ -37,10 +37,7 @@ def slugify_text_for_file_names(text, default=None, max_length=None):
     # Collapse down repeated underscores
     value = re.sub(r"_+", "_", value, re.ASCII)
 
-    # Remove leading and trailing underscores
-    value = value.strip("_")
-
-    if value:
+    if value := value.strip("_"):
         return value[:max_length] if max_length else value
 
     return default

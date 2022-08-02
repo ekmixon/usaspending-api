@@ -81,14 +81,22 @@ def make_read_constraints(table_name):
 
 
 def make_rename_sql(table_name):
-    table_temp_name = table_name + "_temp"
-    table_archive_name = table_name + "_old"
-    sql_strings = []
-    sql_strings.append(TEMPLATE["drop_table"].format(table_archive_name))
-    sql_strings.append(TEMPLATE["rename_table"].format("IF EXISTS ", table_name, table_archive_name))
-    sql_strings.append("")
-    sql_strings.append(TEMPLATE["rename_table"].format("", table_temp_name, table_name))
-    sql_strings.append("")
+    table_temp_name = f"{table_name}_temp"
+    table_archive_name = f"{table_name}_old"
+    sql_strings = [TEMPLATE["drop_table"].format(table_archive_name)]
+    sql_strings.extend(
+        (
+            TEMPLATE["rename_table"].format(
+                "IF EXISTS ", table_name, table_archive_name
+            ),
+            "",
+        )
+    )
+
+    sql_strings.extend(
+        (TEMPLATE["rename_table"].format("", table_temp_name, table_name), "")
+    )
+
     return sql_strings
 
 
@@ -112,9 +120,9 @@ def create_all_sql_strings(sql_json):
 
 
 def write_sql_file(str_list, filename):
-    fname = filename + ".sql"
+    fname = f"{filename}.sql"
 
-    print_debug("Creating file: {}".format(fname))
+    print_debug(f"Creating file: {fname}")
     with open(fname, "w") as f:
         fstring = "\n".join(str_list)
         f.write(fstring)
@@ -141,32 +149,32 @@ def make_matview_empty(matview_name, chunk_count):
 
 def create_componentized_files(sql_json):
     matview_name = sql_json["final_name"]
-    matview_temp_name = matview_name + "_temp"
+    matview_temp_name = f"{matview_name}_temp"
     filename_base = os.path.join(DEST_FOLDER, COMPONENT_DIR, sql_json["final_name"])
 
     create_table = make_temp_table_create(matview_name, matview_temp_name)
-    write_sql_file(create_table, filename_base + "__create")
+    write_sql_file(create_table, f"{filename_base}__create")
 
     insert_into_table = make_table_inserts(matview_temp_name, matview_name, GLOBAL_ARGS.chunk_count)
-    write_sql_file(insert_into_table, filename_base + "__inserts")
+    write_sql_file(insert_into_table, f"{filename_base}__inserts")
 
     sql_strings = make_rename_sql(matview_name)
-    write_sql_file(sql_strings, filename_base + "__renames")
+    write_sql_file(sql_strings, f"{filename_base}__renames")
 
     sql_strings = make_modification_sql(matview_name, GLOBAL_ARGS.quiet)
-    write_sql_file(sql_strings, filename_base + "__mods")
+    write_sql_file(sql_strings, f"{filename_base}__mods")
 
     sql_strings = make_table_drops(matview_name)
-    write_sql_file(sql_strings, filename_base + "__drops")
+    write_sql_file(sql_strings, f"{filename_base}__drops")
 
     sql_strings = make_matview_empty(matview_name, GLOBAL_ARGS.chunk_count)
-    write_sql_file(sql_strings, filename_base + "__empty")
+    write_sql_file(sql_strings, f"{filename_base}__empty")
 
     sql_strings = make_read_indexes(matview_name)
-    write_sql_file(sql_strings, filename_base + "__indexes")
+    write_sql_file(sql_strings, f"{filename_base}__indexes")
 
     sql_strings = make_read_constraints(matview_name)
-    write_sql_file(sql_strings, filename_base + "__constraints")
+    write_sql_file(sql_strings, f"{filename_base}__constraints")
 
 
 def create_chunked_componentized_files(sql_json):
@@ -174,18 +182,18 @@ def create_chunked_componentized_files(sql_json):
     filename_base = os.path.join(DEST_FOLDER, COMPONENT_DIR, sql_json["final_name"])
 
     sql_strings = make_matview_drops(table_name)
-    write_sql_file(sql_strings, filename_base + "__drops")
+    write_sql_file(sql_strings, f"{filename_base}__drops")
 
     sql_strings = make_matview_refresh(table_name, "")
-    write_sql_file(sql_strings, filename_base + "__refresh")
+    write_sql_file(sql_strings, f"{filename_base}__refresh")
 
     sql_strings = make_matview_create(table_name, sql_json["matview_sql"])
-    write_sql_file(sql_strings, filename_base + "__matview")
+    write_sql_file(sql_strings, f"{filename_base}__matview")
 
 
 def create_monolith_file(sql_json):
     sql_strings = create_all_sql_strings(sql_json)
-    print_debug('Preparing to store "{}" in sql file'.format(sql_json["final_name"]))
+    print_debug(f'Preparing to store "{sql_json["final_name"]}" in sql file')
     write_sql_file(sql_strings, os.path.join(DEST_FOLDER, sql_json["final_name"]))
 
 
@@ -196,7 +204,10 @@ def add_chunk_strings(sql_json, chunk):
 
     if chunk_count > 1:
         chunked_sql_json["final_name"] = f"{chunked_sql_json['final_name']}_{chunk}"
-        chunked_sql_json["matview_sql"].append("  AND transaction_normalized.id % {} = {}".format(chunk_count, chunk))
+        chunked_sql_json["matview_sql"].append(
+            f"  AND transaction_normalized.id % {chunk_count} = {chunk}"
+        )
+
 
     return chunked_sql_json
 
@@ -215,12 +226,12 @@ def main(source_file):
     try:
         sql_json = ingest_json(source_file)
     except Exception as e:
-        print("Error on Matview source JSON file: {}".format(source_file))
+        print(f"Error on Matview source JSON file: {source_file}")
         print(e)
         raise SystemExit(1)
 
     create_componentized_files(sql_json)
-    for chunk in range(0, GLOBAL_ARGS.chunk_count):
+    for chunk in range(GLOBAL_ARGS.chunk_count):
         chunked_sql_json = add_chunk_strings(sql_json, chunk)
 
         create_monolith_file(chunked_sql_json)
@@ -251,12 +262,12 @@ if __name__ == "__main__":
     if not os.path.exists(os.path.join(DEST_FOLDER, COMPONENT_DIR)):
         os.makedirs(os.path.join(DEST_FOLDER, COMPONENT_DIR))
 
-    if GLOBAL_ARGS.file is not None:
-        if os.path.isfile(GLOBAL_ARGS.file):
-            print_debug("Creating matview SQL using {}".format(GLOBAL_ARGS.file))
-            main(GLOBAL_ARGS.file)
-    else:
+    if GLOBAL_ARGS.file is None:
         all_files = glob.glob(os.path.join(HERE, "*.json"))
         for f in all_files:
-            print_debug("\n==== {}".format(f))
+            print_debug(f"\n==== {f}")
             main(f)
+
+    elif os.path.isfile(GLOBAL_ARGS.file):
+        print_debug(f"Creating matview SQL using {GLOBAL_ARGS.file}")
+        main(GLOBAL_ARGS.file)

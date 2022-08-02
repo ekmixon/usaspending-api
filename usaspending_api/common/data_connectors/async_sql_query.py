@@ -18,9 +18,8 @@ async def async_run_create(sql, verify_text=None):
     response_msg = stmt.get_statusmsg()
     await conn.close()
 
-    if verify_text:
-        if response_msg != verify_text:
-            raise RuntimeError("SQL did not return the correct response")
+    if verify_text and response_msg != verify_text:
+        raise RuntimeError("SQL did not return the correct response")
 
 
 async def async_run_creates(sql_statements, wrapper):

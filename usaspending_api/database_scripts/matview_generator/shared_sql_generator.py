@@ -45,11 +45,8 @@ def generate_uid(characters=8, filename=None):
     try:
         git_hash = get_git_commit(characters - 1, filename)
     except Exception as e:
-        print("Error: [{}]. Continuing...".format(e))
-    if git_hash is None:
-        return str(uuid4())[:characters]
-    else:
-        return git_hash + "$"
+        print(f"Error: [{e}]. Continuing...")
+    return str(uuid4())[:characters] if git_hash is None else f"{git_hash}$"
 
 
 def get_git_commit(characters=8, filename=None):
@@ -59,10 +56,7 @@ def get_git_commit(characters=8, filename=None):
         cmd_args.append(filename)
 
     shell = subprocess.run(cmd_args, stdout=subprocess.PIPE, check=True)
-    if shell.stdout:
-        # First character is a '#' so skip it
-        return shell.stdout[1 : characters + 1].decode()
-    return None
+    return shell.stdout[1 : characters + 1].decode() if shell.stdout else None
 
 
 def create_index_string(matview_name, index_name, idx):
@@ -72,10 +66,7 @@ def create_index_string(matview_name, index_name, idx):
     idx_method = idx.get("method", "BTREE")  # if missing, defaults to BTREE
     idx_unique = "UNIQUE " if idx.get("unique", False) else ""
     idx_where = " WHERE " + idx["where"] if idx.get("where", None) else ""
-    idx_with = ""
-    if idx_method.upper() == "BTREE":
-        idx_with = " WITH (fillfactor = 97)"  # reduce btree index size by 7% from the default 10% free-space
-
+    idx_with = " WITH (fillfactor = 97)" if idx_method.upper() == "BTREE" else ""
     idx_cols = []
     for col in idx["columns"]:
         index_def = [col["name"]]  # Critical to have col or expression. Exception if missing
@@ -86,15 +77,20 @@ def create_index_string(matview_name, index_name, idx):
         if col.get("opclass", None):  # if missing, skip and let postgres choose
             index_def.append(col["opclass"])
         idx_cols.append(" ".join(index_def))
-    idx_str = TEMPLATE["create_index"].format(
-        idx_unique, index_name, matview_name, idx_method, ", ".join(idx_cols), idx_with, idx_where
+    return TEMPLATE["create_index"].format(
+        idx_unique,
+        index_name,
+        matview_name,
+        idx_method,
+        ", ".join(idx_cols),
+        idx_with,
+        idx_where,
     )
-    return idx_str
 
 
 def make_table_drops(table_name):
-    table_old_name = table_name + "_old"
-    table_temp_name = table_name + "_temp"
+    table_old_name = f"{table_name}_old"
+    table_temp_name = f"{table_name}_temp"
     return [TEMPLATE["drop_table"].format(table_old_name), TEMPLATE["drop_table"].format(table_temp_name)]
 
 
@@ -112,13 +108,16 @@ def make_indexes_sql(sql_json, entity_name, unique_string, progress_sql, quiet):
     rename_new_indexes = []
     for idx in sql_json["indexes"]:
         if len(idx["name"]) > MAX_NAME_LENGTH:
-            raise Exception("Desired index name is too long. Keep under {} chars".format(MAX_NAME_LENGTH))
+            raise Exception(
+                f"Desired index name is too long. Keep under {MAX_NAME_LENGTH} chars"
+            )
 
-        final_index = "idx_" + unique_string + "_" + idx["name"]
+
+        final_index = f"idx_{unique_string}_" + idx["name"]
         final_index = final_index.replace("-", "")
         unique_name_list.append(final_index)
-        tmp_index = final_index + "_temp"
-        old_index = final_index + "_old"
+        tmp_index = f"{final_index}_temp"
+        old_index = f"{final_index}_old"
 
         idx_str = create_index_string(entity_name, tmp_index, idx)
 
@@ -131,12 +130,15 @@ def make_indexes_sql(sql_json, entity_name, unique_string, progress_sql, quiet):
     total = len(create_indexes)
 
     if not quiet:
-        print("There are {} index creations".format(total))
+        print(f"There are {total} index creations")
 
     indexes_and_msg = []
     for n, index in enumerate(create_indexes):
         if n % 10 == 0 and n > 0 and progress_sql:
-            console = TEMPLATE["sql_print_output"].format("{} indexes created, {} remaining".format(n, total - n))
+            console = TEMPLATE["sql_print_output"].format(
+                f"{n} indexes created, {total - n} remaining"
+            )
+
             indexes_and_msg.append(console)
         indexes_and_msg.append(index)
 
@@ -148,10 +150,15 @@ def make_modification_sql(entity_name, quiet):
     sql_strings = []
     if CLUSTERING_INDEX:
         if not quiet:
-            print("*** This matview will be clustered on {} ***".format(CLUSTERING_INDEX))
+            print(f"*** This matview will be clustered on {CLUSTERING_INDEX} ***")
         sql_strings.append(TEMPLATE["cluster_matview"].format(entity_name, CLUSTERING_INDEX))
-    sql_strings.append(TEMPLATE["analyze"].format(entity_name))
-    sql_strings.append(TEMPLATE["grant_select"].format(entity_name, "readonly"))
+    sql_strings.extend(
+        (
+            TEMPLATE["analyze"].format(entity_name),
+            TEMPLATE["grant_select"].format(entity_name, "readonly"),
+        )
+    )
+
     return sql_strings
 
 
@@ -167,13 +174,16 @@ def make_stats_sql(sql_json, matview_name, unique_string):
 
     for stat in sql_json["stats"]:
         if len(stat["name"]) > MAX_NAME_LENGTH:
-            raise Exception("Desired stat name is too long. Keep under {} chars".format(MAX_NAME_LENGTH))
+            raise Exception(
+                f"Desired stat name is too long. Keep under {MAX_NAME_LENGTH} chars"
+            )
 
-        final_stat = "st_" + unique_string + "_" + stat["name"]
+
+        final_stat = f"st_{unique_string}_" + stat["name"]
         final_stat = final_stat.replace("-", "")
         unique_name_list.append(final_stat)
-        tmp_stat = final_stat + "_temp"
-        old_stat = final_stat + "_old"
+        tmp_stat = f"{final_stat}_temp"
+        old_stat = f"{final_stat}_old"
 
         columns = ", ".join(stat["columns"])
         stat_str = TEMPLATE["create_stats"].format(tmp_stat, columns, matview_name)
@@ -182,8 +192,12 @@ def make_stats_sql(sql_json, matview_name, unique_string):
         rename_new_stats.append(TEMPLATE["rename_stats"].format(tmp_stat, final_stat))
         rename_old_stats.append(TEMPLATE["rename_stats"].format(final_stat, old_stat))
 
-    rename_old_stats.append("EXCEPTION WHEN undefined_object THEN")
-    rename_old_stats.append("RAISE NOTICE 'Skipping statistics renames, no conflicts'; END; $$ language 'plpgsql';")
+    rename_old_stats.extend(
+        (
+            "EXCEPTION WHEN undefined_object THEN",
+            "RAISE NOTICE 'Skipping statistics renames, no conflicts'; END; $$ language 'plpgsql';",
+        )
+    )
 
     if len(unique_name_list) != len(set(unique_name_list)):
         raise Exception("Name collision detected. Examine JSON file")
@@ -197,8 +211,7 @@ def split_indexes_chunks(index_list, file_count):
     sublists with the full-set in a round-robin ordering to spread-out similar indexes
     to different workers as a poorman's averaging of the execution times
     """
-    results = [list() for _ in range(file_count)]  # create empty lists for the index SQL strings
-    for i, index in enumerate([index for index in index_list if index.startswith("CREATE")]):
+    results = [[] for _ in range(file_count)]
+    for i, index in enumerate(index for index in index_list if index.startswith("CREATE")):
         results[i % file_count].append(index)
-    for result in results:
-        yield result
+    yield from results

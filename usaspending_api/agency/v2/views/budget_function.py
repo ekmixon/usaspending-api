@@ -23,7 +23,7 @@ class BudgetFunctionList(PaginationMixin, AgencyBase):
 
     def format_results(self, rows):
         order = self.pagination.sort_order == "desc"
-        names = set([row["treasury_account__budget_function_title"] for row in rows])
+        names = {row["treasury_account__budget_function_title"] for row in rows}
         budget_functions = [{"name": x} for x in names]
         for item in budget_functions:
             item["children"] = [
@@ -35,8 +35,11 @@ class BudgetFunctionList(PaginationMixin, AgencyBase):
                 for row in rows
                 if item["name"] == row["treasury_account__budget_function_title"]
             ]
-            item["obligated_amount"] = sum([x["obligated_amount"] for x in item["children"]])
-            item["gross_outlay_amount"] = sum([x["gross_outlay_amount"] for x in item["children"]])
+            item["obligated_amount"] = sum(x["obligated_amount"] for x in item["children"])
+            item["gross_outlay_amount"] = sum(
+                x["gross_outlay_amount"] for x in item["children"]
+            )
+
             item["children"] = sorted(item["children"], key=lambda x: x[self.pagination.sort_key], reverse=order)
         budget_functions = sorted(budget_functions, key=lambda x: x[self.pagination.sort_key], reverse=order)
         return budget_functions
@@ -77,8 +80,12 @@ class BudgetFunctionList(PaginationMixin, AgencyBase):
                 )
             )
 
-        results = (
-            (FinancialAccountsByProgramActivityObjectClass.objects.filter(*filters))
+        return (
+            (
+                FinancialAccountsByProgramActivityObjectClass.objects.filter(
+                    *filters
+                )
+            )
             .values(
                 "treasury_account__budget_function_code",
                 "treasury_account__budget_function_title",
@@ -86,8 +93,11 @@ class BudgetFunctionList(PaginationMixin, AgencyBase):
                 "treasury_account__budget_subfunction_title",
             )
             .annotate(
-                obligated_amount=Sum("obligations_incurred_by_program_object_class_cpe"),
-                gross_outlay_amount=Sum("gross_outlay_amount_by_program_object_class_cpe"),
+                obligated_amount=Sum(
+                    "obligations_incurred_by_program_object_class_cpe"
+                ),
+                gross_outlay_amount=Sum(
+                    "gross_outlay_amount_by_program_object_class_cpe"
+                ),
             )
         )
-        return results

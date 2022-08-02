@@ -14,10 +14,10 @@ class ETLObjectBase(metaclass=ABCMeta):
 
     @cached_property
     def columns(self) -> List[str]:
-        columns = self._get_columns()
-        if not columns:
+        if columns := self._get_columns():
+            return columns
+        else:
             raise RuntimeError("No columns found.  Do we have permission to see the database object?")
-        return columns
 
     @cached_property
     def object_representation(self) -> Composed:

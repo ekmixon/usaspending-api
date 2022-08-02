@@ -32,7 +32,7 @@ class Command(BaseCommand):
         with connection.cursor() as cursor:
             cursor.execute(remove_ghost_migrations, [tuple(app_list)])
             rows = cursor.rowcount
-        logger.info("Removed {} django_migrations records for apps {}".format(rows, app_list))
+        logger.info(f"Removed {rows} django_migrations records for apps {app_list}")
 
         # fake the initial migrations
         for app in app_list:

@@ -77,8 +77,15 @@ def dates_are_month_bookends(start, end):
 
 
 def min_and_max_from_date_ranges(filter_time_periods: list) -> tuple:
-    min_date = min([t.get("start_date", settings.API_MAX_DATE) for t in filter_time_periods])
-    max_date = max([t.get("end_date", settings.API_SEARCH_MIN_DATE) for t in filter_time_periods])
+    min_date = min(
+        t.get("start_date", settings.API_MAX_DATE) for t in filter_time_periods
+    )
+
+    max_date = max(
+        t.get("end_date", settings.API_SEARCH_MIN_DATE)
+        for t in filter_time_periods
+    )
+
     return dt.strptime(min_date, "%Y-%m-%d"), dt.strptime(max_date, "%Y-%m-%d")
 
 
@@ -141,15 +148,16 @@ def get_pagination(results, limit, page, benchmarks=False):
     page_metadata["hasNext"] = limit * page < len(results)
     page_metadata["hasPrevious"] = page > 1 and limit * (page - 2) < len(results)
 
-    if not page_metadata["hasNext"]:
-        paginated_results = results[limit * (page - 1) :]
-    else:
-        paginated_results = results[limit * (page - 1) : limit * page]
+    paginated_results = (
+        results[limit * (page - 1) : limit * page]
+        if page_metadata["hasNext"]
+        else results[limit * (page - 1) :]
+    )
 
     page_metadata["next"] = page + 1 if page_metadata["hasNext"] else None
     page_metadata["previous"] = page - 1 if page_metadata["hasPrevious"] else None
     if benchmarks:
-        logger.info("get_pagination took {} seconds".format(time.time() - start_pagination))
+        logger.info(f"get_pagination took {time.time() - start_pagination} seconds")
     return paginated_results, page_metadata
 
 
@@ -177,14 +185,13 @@ def get_simple_pagination_metadata(results_plus_one, limit, page):
     has_next = results_plus_one > limit
     has_previous = page > 1
 
-    page_metadata = {
+    return {
         "page": page,
         "next": page + 1 if has_next else None,
         "previous": page - 1 if has_previous else None,
         "hasNext": has_next,
         "hasPrevious": has_previous,
     }
-    return page_metadata
 
 
 def get_generic_filters_message(original_filters, allowed_filters):
@@ -208,10 +215,7 @@ def unused_filters_message(filters):
 
 
 def get_account_data_time_period_message():
-    return (
-        f"Account data powering this endpoint were first collected in FY2017 Q2 under the DATA Act; "
-        f"as such, there are no data available for prior fiscal years."
-    )
+    return 'Account data powering this endpoint were first collected in FY2017 Q2 under the DATA Act; as such, there are no data available for prior fiscal years.'
 
 
 # Raw SQL run during a migration
@@ -298,7 +302,7 @@ END$$;"""
 
 def generate_test_db_connection_string():
     db = connection.cursor().db.settings_dict
-    return "postgres://{}:{}@{}:5432/{}".format(db["USER"], db["PASSWORD"], db["HOST"], db["NAME"])
+    return f'postgres://{db["USER"]}:{db["PASSWORD"]}@{db["HOST"]}:5432/{db["NAME"]}'
 
 
 def sort_with_null_last(to_sort, sort_key, sort_order, tie_breaker=None):

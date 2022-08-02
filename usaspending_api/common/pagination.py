@@ -29,7 +29,7 @@ class UsaspendingPagination(BasePagination):
         self.page = self.get_page(request)
         self.offset = self.get_offset(request)
         self.has_next_page = self.next_page_exists(queryset)
-        self.has_previous_page = bool(self.page > 1)
+        self.has_previous_page = self.page > 1
 
         # Turn on the controls if we have multiple pages
         if self.next_page_exists and self.template is not None:
@@ -45,28 +45,26 @@ class UsaspendingPagination(BasePagination):
         # Check both POST and GET parameters for limit
         request_parameters = {**request.data, **request.query_params}
 
-        if "limit" in request_parameters:
-            # We need to check if this is a list due to the fact we support both POST and GET
-            lim = request_parameters["limit"]
-            if isinstance(lim, list):
-                lim = lim[0]
-            # This will ensure our limit is bounded by [1, max_page_size]
-            return max(min(int(lim), self.max_page_size), 1)
-        else:
+        if "limit" not in request_parameters:
             return self.page_size
+        # We need to check if this is a list due to the fact we support both POST and GET
+        lim = request_parameters["limit"]
+        if isinstance(lim, list):
+            lim = lim[0]
+        # This will ensure our limit is bounded by [1, max_page_size]
+        return max(min(int(lim), self.max_page_size), 1)
 
     def get_page(self, request):
         # Check both POST and GET parameters for page
         request_parameters = {**request.data, **request.query_params}
-        if "page" in request_parameters:
-            # We need to check if this is a list due to the fact we support both POST and GET
-            p = request_parameters["page"]
-            if isinstance(p, list):
-                p = p[0]
-            # Ensures our page is bounded by [1, ..]
-            return max(int(p), 1)
-        else:
+        if "page" not in request_parameters:
             return 1
+        # We need to check if this is a list due to the fact we support both POST and GET
+        p = request_parameters["page"]
+        if isinstance(p, list):
+            p = p[0]
+        # Ensures our page is bounded by [1, ..]
+        return max(int(p), 1)
 
     def get_offset(self, request):
         return (self.page - 1) * self.limit

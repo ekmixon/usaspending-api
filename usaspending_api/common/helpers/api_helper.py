@@ -50,26 +50,25 @@ def raise_if_award_types_not_valid_subset(award_type_codes, is_subaward=False):
             )
             raise UnprocessableEntityException(json.loads(error_msg))
 
-    else:
-        if not award_types_are_valid_groups(award_type_codes):
-            error_msg = (
-                "{{{} {{"
-                '"contracts": {},'
-                '"loans": {},'
-                '"idvs": {},'
-                '"grants": {},'
-                '"other_financial_assistance": {},'
-                '"direct_payments": {}}}}}'
-            ).format(
-                msg_head,
-                json.dumps(contract_type_mapping),
-                json.dumps(loan_type_mapping),
-                json.dumps(idv_type_mapping),
-                json.dumps(grant_type_mapping),
-                json.dumps(direct_payment_type_mapping),
-                json.dumps(other_type_mapping),
-            )
-            raise UnprocessableEntityException(json.loads(error_msg))
+    elif not award_types_are_valid_groups(award_type_codes):
+        error_msg = (
+            "{{{} {{"
+            '"contracts": {},'
+            '"loans": {},'
+            '"idvs": {},'
+            '"grants": {},'
+            '"other_financial_assistance": {},'
+            '"direct_payments": {}}}}}'
+        ).format(
+            msg_head,
+            json.dumps(contract_type_mapping),
+            json.dumps(loan_type_mapping),
+            json.dumps(idv_type_mapping),
+            json.dumps(grant_type_mapping),
+            json.dumps(direct_payment_type_mapping),
+            json.dumps(other_type_mapping),
+        )
+        raise UnprocessableEntityException(json.loads(error_msg))
 
 
 def raise_if_sort_key_not_valid(sort_key, field_list, is_subaward=False):
@@ -91,10 +90,11 @@ def raise_if_sort_key_not_valid(sort_key, field_list, is_subaward=False):
 
     if sort_key not in field_external_name_list:
         raise InvalidParameterException(
-            "Sort value '{}' not found in {}Award mappings: {}".format(sort_key, msg_prefix, field_external_name_list)
+            f"Sort value '{sort_key}' not found in {msg_prefix}Award mappings: {field_external_name_list}"
         )
+
 
     if sort_key not in field_list:
         raise InvalidParameterException(
-            "Sort value '{}' not found in requested fields: {}".format(sort_key, field_list)
+            f"Sort value '{sort_key}' not found in requested fields: {field_list}"
         )

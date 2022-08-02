@@ -118,8 +118,7 @@ class TransactionFABS(models.Model):
 
     @property
     def cfda_objectives(self):
-        cfda = Cfda.objects.filter(program_number=self.cfda_number).first()
-        if cfda:
+        if cfda := Cfda.objects.filter(program_number=self.cfda_number).first():
             return cfda.objectives
 
     class Meta:

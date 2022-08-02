@@ -19,7 +19,12 @@ def instantiate_elasticsearch_client() -> Elasticsearch:
     es_kwargs = {"timeout": 300}
 
     if "https" in settings.ES_HOSTNAME:
-        es_kwargs.update({"use_ssl": True, "verify_certs": True, "ca_certs": certifi.where()})
+        es_kwargs |= {
+            "use_ssl": True,
+            "verify_certs": True,
+            "ca_certs": certifi.where(),
+        }
+
 
     return Elasticsearch(settings.ES_HOSTNAME, **es_kwargs)
 
@@ -45,4 +50,4 @@ def create_es_client() -> Elasticsearch:
 
         CLIENT = Elasticsearch(**es_config)
     except Exception as e:
-        logger.error("Error creating the elasticsearch client: {}".format(e))
+        logger.error(f"Error creating the elasticsearch client: {e}")

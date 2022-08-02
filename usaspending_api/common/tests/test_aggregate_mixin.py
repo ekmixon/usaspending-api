@@ -154,7 +154,7 @@ def test_aggregate(monkeypatch, aggregate_models, model, request_data, result):
     a = AggregateQuerysetMixin()
     agg = a.aggregate(request=request, queryset=model.objects.all())
 
-    agg_list = [a for a in agg]
+    agg_list = list(agg)
     if "order" not in request_data:
         # this isn't an 'order by' request, (i.e., we're not testing the result order), so sort the actual and expected
         # results to ensure a good comparison
@@ -183,7 +183,7 @@ def test_aggregate_fy(monkeypatch, aggregate_models, model, request_data, expect
     a = AggregateQuerysetMixin()
     agg = a.aggregate(request=request, queryset=model.objects.all())
 
-    agg_list = [a for a in agg]
+    agg_list = list(agg)
     if "order" not in request_data:
         # this isn't an 'order by' request, (i.e., we're not testing the result order), so sort the actual and expected
         # results to ensure a good comparison
@@ -234,7 +234,7 @@ def test_aggregate_fy_and_type(monkeypatch, aggregate_models, model, request_dat
     a = AggregateQuerysetMixin()
     agg = a.aggregate(request=request, queryset=model.objects.all())
 
-    agg_list = [a for a in agg]
+    agg_list = list(agg)
     if "order" not in request_data:
         # this isn't an 'order by' request, (i.e., we're not testing the result order), so sort the actual and expected
         # results to ensure a good comparison
@@ -255,9 +255,7 @@ _expected_parent_fy_aggregated = [
 @pytest.mark.django_db
 def test_aggregate_nulls(monkeypatch, aggregate_models_with_nulls):
     def itemsorter(a):
-        if a["aggregate"] is None:
-            return 0
-        return a["aggregate"]
+        return 0 if a["aggregate"] is None else a["aggregate"]
 
     assert TransactionNormalized.objects.count() == 5
 
@@ -267,7 +265,7 @@ def test_aggregate_nulls(monkeypatch, aggregate_models_with_nulls):
     request.data = {"field": "federal_action_obligation", "group": "assistance_data__cfda_number"}
     a = AggregateQuerysetMixin()
     agg = a.aggregate(request=request, queryset=TransactionNormalized.objects.all())
-    agg_list = [a for a in agg]
+    agg_list = list(agg)
 
     assert len(agg_list) == 1
     assert agg_list[0]["aggregate"] == 10.0
@@ -277,7 +275,7 @@ def test_aggregate_nulls(monkeypatch, aggregate_models_with_nulls):
         "group": ["assistance_data__cfda_number", "contract_data__naics"],
     }
     agg = a.aggregate(request=request, queryset=TransactionNormalized.objects.all())
-    agg_list = [a for a in agg]
+    agg_list = list(agg)
     agg_list.sort(key=itemsorter)
 
     assert len(agg_list) == 2
@@ -291,7 +289,7 @@ def test_aggregate_nulls(monkeypatch, aggregate_models_with_nulls):
         "show_null_aggregates": True,
     }
     agg = a.aggregate(request=request, queryset=TransactionNormalized.objects.all())
-    agg_list = [a for a in agg]
+    agg_list = list(agg)
     agg_list.sort(key=itemsorter)
 
     assert len(agg_list) == 3
@@ -306,7 +304,7 @@ def test_aggregate_nulls(monkeypatch, aggregate_models_with_nulls):
         "show_null_groups": True,
     }
     agg = a.aggregate(request=request, queryset=TransactionNormalized.objects.all())
-    agg_list = [a for a in agg]
+    agg_list = list(agg)
     agg_list.sort(key=itemsorter)
 
     assert len(agg_list) == 2
@@ -321,7 +319,7 @@ def test_aggregate_nulls(monkeypatch, aggregate_models_with_nulls):
         "show_null_groups": True,
     }
     agg = a.aggregate(request=request, queryset=TransactionNormalized.objects.all())
-    agg_list = [a for a in agg]
+    agg_list = list(agg)
     agg_list.sort(key=itemsorter)
 
     assert len(agg_list) == 3
@@ -332,7 +330,7 @@ def test_aggregate_nulls(monkeypatch, aggregate_models_with_nulls):
     # Allow null aggregate fields and groups (using show_nulls to trigger both)
     request.data = {"field": "federal_action_obligation", "group": "contract_data__naics", "show_nulls": True}
     agg = a.aggregate(request=request, queryset=TransactionNormalized.objects.all())
-    agg_list = [a for a in agg]
+    agg_list = list(agg)
     agg_list.sort(key=itemsorter)
 
     assert len(agg_list) == 3

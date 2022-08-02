@@ -155,9 +155,9 @@ def generate_raw_quoted_query(queryset):
         if isinstance(param, TYPES_TO_QUOTE_IN_SQL):
             # single quotes are escaped with two '' for strings in sql
             param = param.replace("'", "''") if isinstance(param, str) else param
-            str_fix_param = "'{}'".format(param)
+            str_fix_param = f"'{param}'"
         elif isinstance(param, list):
-            str_fix_param = "ARRAY{}".format(param)
+            str_fix_param = f"ARRAY{param}"
         else:
             str_fix_param = param
         str_fix_params.append(str_fix_param)
@@ -172,8 +172,7 @@ def obtain_view_from_award_group(type_list):
     for category, values in CATEGORY_TO_MODEL.items():
         if type_set <= values["types"]:
             return values["model"]
-    else:
-        raise AwardGroupsException("Invalid award type list: Types cross multiple categories.")
+    raise AwardGroupsException("Invalid award type list: Types cross multiple categories.")
 
 
 def award_types_are_valid_groups(type_list: list) -> bool:
